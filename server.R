@@ -20,7 +20,7 @@ shinyServer(function(input, output, session) {
   rdmlTbl <- reactive({
     req(rdml())
     toLog("Creating description table")
-    rdml()$AsTable() %>% 
+    rdml()$AsTable(cq = data$cq) %>% 
       mutate(marker = str_split(target, "_", simplify = TRUE)[, 1],
              allele = str_split(target, "_", simplify = TRUE)[, 2]) %>% 
       group_by(position) %>% 
@@ -55,20 +55,41 @@ shinyServer(function(input, output, session) {
                                    selected = markers)
                })
   
+  observeEvent(rdmlTbl(),
+               {
+                 toLog("Updating Control Marker select")
+                 updateSelectInput(session,
+                                   "ctrlMarker",
+                                   choices = unique(rdmlTbl()$kit),
+                                   selected = unique(rdmlTbl()$kit)[1])
+               })
+  
   fData <- reactive({
     req(rdmlTbl())
     toLog("Getting fData")
     rdml()$GetFData(rdmlTbl(), long.table = TRUE)
   })
   
+  resultsTbl <- reactive({
+    req(input$calcResults)
+    isolate({
+      rdmlTbl() %>% 
+        group_by(kit, marker, allele, sample) %>% 
+        mutate(meanCq = mean(cq),
+               cq_f = round(cq, digits = 2),
+               meanCq_f = round(meanCq, digits = 2))
+    })
+  })
+  
   output$pcrPlateUI <- renderUI({
-    req(rdmlTbl())
+    req(resultsTbl())
     toLog("Creating pcrPlate")
     pcrPlateInput("pcrPlate", 
-                  plateDescription = rdmlTbl() %>% 
+                  plateDescription = resultsTbl() %>% 
                     dplyr::rename(sampleType = sample.type) %>% 
                     mutate(mark = sprintf("<span class='%s'></span>", sampleType)),  #whisker does not support dots!
-                  wellLabelTemplate = "{{{mark}}}{{sample}}",
+                  wellLabelTemplate = "{{sample}}",
+                  onHoverWellTextTemplate = "{{position}}\n{{sample}}\nKit: {{kit}}\nMarker: {{marker}}\nAllele: {{allele}}\nCq: {{cq_f}}\nMean Cq: {{meanCq_f}}",
                   wellClassTemplate = "{{kit}} {{sampleType}}",
                   cssText = "#{{id}} td.selected-well{border: 2px solid red !important;}
                   #{{id}} .kit_01{background-color: Plum ;}
