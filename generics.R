@@ -15,7 +15,7 @@ addMarkersKits <- function(descrTbl) {
              sprintf("kit_%02i", .))
 }
 
-dataType$public_methods
+
 dataType$set("public", "Preprocess", 
              function(bgRange) {
                # library(chipPCR)
@@ -25,8 +25,6 @@ dataType$set("public", "Preprocess",
                  chipPCR::CPP(fpoints$cyc, fpoints$fluor,
                      bg.range = bgRange)$y.norm
                self$adp$fpoints <- fpoints
-               
-               self$endPt <- tail(fpoints$fluor, 1)
                result <- "Ok"
                self$cq <- 
                  tryCatch(
@@ -42,5 +40,12 @@ dataType$set("public", "Preprocess",
                    max(fpoints$cyc)
                  })
                result
+             },
+             overwrite = TRUE)
+
+
+dataType$set("public", "InitEndPt", 
+             function() {
+               self$endPt <- tail(self$adp$fpoints$fluor, 1)
              },
              overwrite = TRUE)

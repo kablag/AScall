@@ -9,6 +9,11 @@ nCores <- detectCores()
 cl <- makeCluster(nCores)
 registerDoParallel(cl)
 
+onStop(function() {
+  toLog("Doing application cleanup")
+  stopCluster(cl)
+  })
+
 shinyServer(function(input, output, session) {
   session$onSessionEnded(function() {
     stopApp()
@@ -29,43 +34,151 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$recalculate,
-    {
-      req(rdml())
-      if (input$preprocessCheck &&
-          (is.null(calcResults()) || 
-           # don't preprocess without necessity 
-           (calcResults()$calcParams$bgRange != input$bgRange))) {
-        toLog("Preprocessing curves")
-        for (react in rdml()$experiment[[1]]$run[[1]]$react) {
-          bgRange <- input$bgRange
-          results <- foreach(dat = react$data) %dopar% {
-            dat$Preprocess(bgRange)
-          }
-          for (result in results[results != "Ok"]) {
-            toLog(result[[2]], result[[1]])
-          }
-        }
-      } else {
-        toLog("Passing curves preprocess")
-      }
-      toLog("Creating description table")
-      dTbl <- rdml()$AsTable(cq = data$cq) %>% 
-        addMarkersKits()
-      toLog("Getting fData")
-      fData <- rdml()$GetFData(dTbl, long.table = TRUE)
-      calcResults(list(
-        dTbl = dTbl,
-        fData = fData,
-        calcParams = list(
-          input$preprocessCheck,
-          input$bgRange,
-          input$ctrlMarker,
-          input$cqDelta,
-          input$cqThr,
-          input$rfuThr
-        )
-      ))
-    }
+               {
+                 req(rdml())
+                 
+                 if (input$preprocessCheck &&
+                     (is.null(calcResults()) || 
+                      # don't preprocess without necessity 
+                      (any(calcResults()$calcParams$bgRange != input$bgRange)))
+                     ) {
+                   toLog("Preprocessing curves")
+                   
+                   for (react in rdml()$experiment[[1]]$run[[1]]$react) {
+                     bgRange <- input$bgRange
+                     results <- foreach(dat = react$data) %dopar% {
+                       dat$Preprocess(bgRange)
+                     }
+                     for (result in results[results != "Ok"]) {
+                       toLog(result[[2]], result[[1]])
+                     }
+                   }
+                 } else {
+                   toLog("Passing curves preprocess")
+                 }
+                 
+                 for (react in rdml()$experiment[[1]]$run[[1]]$react) {
+                   for (dat in react$data)
+                     dat$InitEndPt()
+                 }
+                 
+                 toLog("Creating description table")
+                 dTbl <- rdml()$AsTable(cq = data$cq,
+                                        endPt = data$endPt) %>% 
+                   addMarkersKits()
+                 toLog("Getting fData")
+                 
+                 
+                 
+                 maxCq <- rdml()$experiment[[1]]$run[[1]]$react[[1]]$data[[1]]$adp$fpoints$cyc %>% 
+                   tail(1)
+                 
+                 # Low RFU ----------------------------------------------------------------------
+                 
+                 dTbl <- dTbl %>%  
+                   mutate(RFU_QC = ifelse(endPt < input$rfuThr, 
+                                                "Low", "Ok"))
+                 # Set cq = maxCycle for curves with end point RFU lower than rfuThr | is.na(cq)
+                 dTbl[dTbl$RFU_QC == "Low" | is.na(dTbl$cq), "cq"] <- maxCq
+                 
+                 
+                 # Mark AmpStatus --------------------------------------------------------
+                 
+                 # noAmp if: RFU_QC != OK | is higher than cqThr
+                 dTbl <- dTbl %>%  
+                   mutate(ampStatus_QC = ifelse(
+                     RFU_QC != "Ok" | cq > input$cqThr , 
+                     "NoAmp", "Ok"))
+                 
+                 # Replicate match check ---------------------------------------------------
+                 
+                 # All replicates have to be NoAmp or (Ok and Cq∆ lower than cqDelta)
+                 dTbl <- dTbl %>%
+                   group_by(kit, marker, allele, sample) %>% 
+                   mutate(
+                     meanCq = mean(cq),
+                     deltaCq = max(cq) - min(cq),
+                     replicateMatch_QC = { 
+                     if ((all(ampStatus_QC == "Ok") && deltaCq[1] < input$cqDelta) ||
+                         all(ampStatus_QC != "Ok") 
+                         # !!!! temporary hack for control marker in positive sample !!!!
+                         || (sample.type == "pos" && marker == input$ctrlMarker)
+                         ) "Ok"
+                     else "Fail"
+                   })
+                 
+
+                 # Kit NTC noAmp -----------------------------------------------------------
+                 
+                 # All NTC reactions have to be noAmp 
+                 dTbl <- dTbl %>%  
+                   group_by(kit) %>% 
+                   mutate(noAmpNTC_QC = 
+                            {
+                              if (any(ampStatus_QC[sample.type == "ntc"] == "Ok"))
+                                "Fail"
+                              else
+                                "Ok"
+                            })
+                 
+
+                 # Kit total QC ------------------------------------------------------------
+
+                 dTbl <- dTbl %>%  
+                   mutate(kit_QC = 
+                   {
+                     if (any(noAmpNTC_QC != "Ok"))
+                       "Fail"
+                     else
+                       "Ok"
+                   })
+                 
+                 
+                 tmpTbl <- dTbl %>%
+                   filter(kit_QC == "Ok", replicateMatch_QC == "Ok") %>%
+                   group_by(kit, marker, sample) %>%
+                   mutate(result = paste(allele[ampStatus_QC == "Ok"] %>% unique(), collapse = ""),
+                          resultZygosity =
+                            sapply(result,
+                                   function(x) switch(as.character(str_length(x)),
+                                                        "0" = "",
+                                                        "1" = "Homo", "2" = "Hetero", "Error"))
+                   )
+                 dTbl <- left_join(dTbl, tmpTbl)
+                 
+                 # combine all errors in one column
+                 qcColumns <- grep("_QC", colnames(dTbl), value = TRUE)
+                 dTbl$total_QC <- apply(dTbl %>%
+                                         ungroup() %>%
+                                         dplyr::select(ends_with("_QC")), 1,
+                                       function(x) {
+                                         filterFails <- x != "Ok"
+                                         paste(paste(qcColumns[filterFails],
+                                                     x[filterFails], sep = ": "), collapse = "; ")
+                                         })
+                 
+                 
+                 fData <- rdml()$GetFData(dTbl, long.table = TRUE)
+                 
+                 calcResults(list(
+                   dTbl = dTbl %>% 
+                     ungroup() %>% 
+                     mutate(
+                       cq_f = round(cq, digits = 2),
+                       meanCq_f = round(meanCq, digits = 2),
+                       deltaCq_f = round(deltaCq, digits = 2)
+                     ),
+                   fData = fData,
+                   calcParams = list(
+                     preprocessCheck = input$preprocessCheck,
+                     bgRange = input$bgRange,
+                     ctrlMarker = input$ctrlMarker,
+                     cqDelta = input$cqDelta,
+                     cqThr = input$cqThr,
+                     rfuThr = input$rfuThr
+                   )
+                 ))
+               }
   )
   
   observeEvent(preCalcTbl(),
@@ -102,104 +215,18 @@ shinyServer(function(input, output, session) {
   
   
   
-  resultsTbl <- reactive({
-    req(calcResults()) #req(input$calcResults)
-    isolate({
-      maxCycle <- calcResults()$fData$cyc %>% max()
-      res <- calcResults()$dTbl %>% 
-        group_by(fdata.name) %>% 
-        mutate(
-          cq = ifelse(is.na(cq), maxCycle, cq),
-          cq_QC = ifelse(cq <= input$cqThr, 
-                         "Ok", 
-                         sprintf("Cq %.2f > %.2f", cq, input$cqThr)) ) %>% 
-        group_by(kit, marker, allele, sample) %>% 
-        mutate(
-          meanCq = mean(cq),
-          meanCq_QC = ifelse(meanCq <= input$cqThr, 
-                             "Ok", 
-                             sprintf("Mean Cq %.2f > %.2f", meanCq, input$cqThr)),
-          deltaCq = max(cq) - min(cq),
-          # check that Cq ∆ is lower than thr value (ctrl marker has own thr)
-          deltacq_QC = { 
-            ifelse(deltaCq <= ifelse(marker == input$ctrlMarker,
-                                     input$cqDelta, 
-                                     input$cqDelta),
-                   "Ok",
-                   sprintf("Mean Cq %.2f > %.2f", meanCq, ifelse(marker == input$ctrlMarker,
-                                                                 input$cqDelta, 
-                                                                 input$cqDelta))
-            )
-          },
-          # Preformat for output
-          cq_f = round(cq, digits = 2),
-          meanCq_f = round(meanCq, digits = 2),
-          deltaCq_f = round(deltaCq, digits = 2)) %>% 
-        group_by(position) %>% 
-        mutate(
-          ctrlMarker_QC = 
-            if (cq_QC[marker == input$ctrlMarker] != "Ok" ||
-                meanCq_QC[marker == input$ctrlMarker] != "Ok" ||
-                deltacq_QC[marker == input$ctrlMarker] != "Ok") "Bad Control Marker"
-          else "Ok"
-        ) %>%
-        group_by(kit) %>% 
-        mutate(
-          ntc_QC = if (any(cq_QC[sample.type == "ntc"] == "Ok"))
-            "Bad NTC" else "Ok",
-          kit_QC = ifelse(ntc_QC != "Ok", "Kit Error", "Ok")
-        ) %>% 
-        group_by(kit, allele) %>% 
-        mutate(
-          pos_QC = if (all(ctrlMarker_QC[sample.type == "pos"] != "Ok") &
-                       xor(all(cq_QC[sample.type == "pos" & 
-                                     grepl("ref", sample) & 
-                                     marker != input$ctrlMarker] == "Ok") & 
-                           all(meanCq_QC[sample.type == "pos" & 
-                                         grepl("ref", sample) & 
-                                         marker != input$ctrlMarker] == "Ok") &
-                           all(deltacq_QC[sample.type == "pos" & 
-                                          grepl("ref", sample) & 
-                                          marker != input$ctrlMarker] == "Ok"),
-                           all(cq_QC[sample.type == "pos" & 
-                                     grepl("alt", sample) & 
-                                     marker != input$ctrlMarker] == "Ok") & 
-                           all(meanCq_QC[sample.type == "pos" & 
-                                         grepl("alt", sample) & 
-                                         marker != input$ctrlMarker] == "Ok") &
-                           all(deltacq_QC[sample.type == "pos" & 
-                                          grepl("alt", sample) & 
-                                          marker != input$ctrlMarker] == "Ok")))
-          "Ok" else "Bad Pos"
-          # TODO: check alt = Ok & alt = Ok   or  ref = Ok & ref = Ok
-          
-        )
-      fRes <- res %>% 
-        # filter(ctrlMarker_QC == "Ok", kit_QC == "Ok") %>% 
-        group_by(kit, marker, sample) %>% 
-        mutate(result = paste(allele[cq_QC == "Ok"] %>% unique(), collapse = ""),
-               resultZygosity = 
-                 sapply(result, 
-                        function(res) switch(as.character(str_length(res)),
-                                             "0" = "",
-                                             "1" = "Homo", "2" = "Hetero", "Error"))
-        )
-      res <- left_join(res, fRes)
-      # testTbl <<- res
-      # combine all errors in one column
-      res$total_QC <- apply(res %>% 
-                              ungroup() %>% 
-                              dplyr::select(ends_with("_QC")), 1,
-                            function(x) paste(x[x != "Ok"], collapse = ", "))
-      res
-    })
-  })
+  # resultsTbl <- reactive({
+  #   req(calcResults()) #req(input$calcResults)
+  #   isolate({
+  #     
+  #   })
+  # })
   
   output$pcrPlateUI <- renderUI({
-    req(resultsTbl())
+    req(calcResults())
     toLog("Creating pcrPlate")
     pcrPlateInput("pcrPlate", 
-                  plateDescription = resultsTbl() %>% 
+                  plateDescription = calcResults()$dTbl %>% 
                     filter(kit %in% input$showKits & marker %in% input$showMarkers) %>% 
                     dplyr::rename(sampleType = sample.type) %>% #whisker does not support dots!
                     group_by(position) %>% 
@@ -248,6 +275,7 @@ shinyServer(function(input, output, session) {
   observeEvent(
     c(input$pcrPlate, input$showMarkers),
     {
+      req(calcResults())
       toLog("Updating curves")
       toHideCurves <-
         which(!(calcResults()$dTbl$position %in% input$pcrPlate) |
@@ -262,9 +290,9 @@ shinyServer(function(input, output, session) {
     })
   
   output$globalResultsTbl <- renderDataTable({
-    req(resultsTbl())
+    req(calcResults())
     toLog("Creating ResultsTbl")
-    resultsTbl() %>%
+    calcResults()$dTbl %>%
       filter(position %in% input$pcrPlate &
                kit %in% input$showKits &
                marker %in% input$showMarkers) %>% 
@@ -275,3 +303,92 @@ shinyServer(function(input, output, session) {
                     kit_QC, total_QC)
   })
 })
+
+
+
+# res <- dTbl %>% 
+#   group_by(fdata.name) %>% 
+#   mutate(
+#     cq = ifelse(is.na(cq), maxCycle, cq),
+#     cq_QC = ifelse(cq <= input$cqThr, 
+#                    "Ok", 
+#                    sprintf("Cq %.2f > %.2f", cq, input$cqThr)) ) %>% 
+#   group_by(kit, marker, allele, sample) %>% 
+#   mutate(
+#     meanCq = mean(cq),
+#     meanCq_QC = ifelse(meanCq <= input$cqThr, 
+#                        "Ok", 
+#                        sprintf("Mean Cq %.2f > %.2f", meanCq, input$cqThr)),
+#     deltaCq = max(cq) - min(cq),
+#     # check that Cq ∆ is lower than thr value (ctrl marker has own thr)
+#     deltacq_QC = { 
+#       ifelse(deltaCq <= ifelse(marker == input$ctrlMarker,
+#                                input$cqDelta, 
+#                                input$cqDelta),
+#              "Ok",
+#              sprintf("Mean Cq %.2f > %.2f", meanCq, ifelse(marker == input$ctrlMarker,
+#                                                            input$cqDelta, 
+#                                                            input$cqDelta))
+#       )
+#     },
+#     # Preformat for output
+#     cq_f = round(cq, digits = 2),
+#     meanCq_f = round(meanCq, digits = 2),
+#     deltaCq_f = round(deltaCq, digits = 2)) %>% 
+#   group_by(position) %>% 
+#   mutate(
+#     ctrlMarker_QC = 
+#       if (cq_QC[marker == input$ctrlMarker] != "Ok" ||
+#           meanCq_QC[marker == input$ctrlMarker] != "Ok" ||
+#           deltacq_QC[marker == input$ctrlMarker] != "Ok") "Bad Control Marker"
+#     else "Ok"
+#   ) %>%
+#   group_by(kit) %>% 
+#   mutate(
+#     ntc_QC = if (any(cq_QC[sample.type == "ntc"] == "Ok"))
+#       "Bad NTC" else "Ok",
+#     kit_QC = ifelse(ntc_QC != "Ok", "Kit Error", "Ok")
+#   ) %>% 
+#   group_by(kit, allele) %>% 
+#   mutate(
+#     pos_QC = if (all(ctrlMarker_QC[sample.type == "pos"] != "Ok") &
+#                  xor(all(cq_QC[sample.type == "pos" & 
+#                                grepl("ref", sample) & 
+#                                marker != input$ctrlMarker] == "Ok") & 
+#                      all(meanCq_QC[sample.type == "pos" & 
+#                                    grepl("ref", sample) & 
+#                                    marker != input$ctrlMarker] == "Ok") &
+#                      all(deltacq_QC[sample.type == "pos" & 
+#                                     grepl("ref", sample) & 
+#                                     marker != input$ctrlMarker] == "Ok"),
+#                      all(cq_QC[sample.type == "pos" & 
+#                                grepl("alt", sample) & 
+#                                marker != input$ctrlMarker] == "Ok") & 
+#                      all(meanCq_QC[sample.type == "pos" & 
+#                                    grepl("alt", sample) & 
+#                                    marker != input$ctrlMarker] == "Ok") &
+#                      all(deltacq_QC[sample.type == "pos" & 
+#                                     grepl("alt", sample) & 
+#                                     marker != input$ctrlMarker] == "Ok")))
+#     "Ok" else "Bad Pos"
+#     # TODO: check alt = Ok & alt = Ok   or  ref = Ok & ref = Ok
+#     
+#   )
+# fRes <- res %>% 
+#   # filter(ctrlMarker_QC == "Ok", kit_QC == "Ok") %>% 
+#   group_by(kit, marker, sample) %>% 
+#   mutate(result = paste(allele[cq_QC == "Ok"] %>% unique(), collapse = ""),
+#          resultZygosity = 
+#            sapply(result, 
+#                   function(res) switch(as.character(str_length(res)),
+#                                        "0" = "",
+#                                        "1" = "Homo", "2" = "Hetero", "Error"))
+#   )
+# res <- left_join(res, fRes)
+# # testTbl <<- res
+# # combine all errors in one column
+# res$total_QC <- apply(res %>% 
+#                         ungroup() %>% 
+#                         dplyr::select(ends_with("_QC")), 1,
+#                       function(x) paste(x[x != "Ok"], collapse = ", "))
+# res
