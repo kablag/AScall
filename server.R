@@ -206,6 +206,16 @@ shinyServer(function(input, output, session) {
   
   observeEvent(preCalcTbl(),
                {
+                 toLog("Updating Samples select")
+                 updateSelectInput(session,
+                                   "showSamples",
+                                   choices = unique(preCalcTbl()$sample),
+                                   selected = unique(preCalcTbl()$sample))
+               })
+  
+  
+  observeEvent(preCalcTbl(),
+               {
                  toLog("Updating Control Marker select")
                  updateSelectInput(session,
                                    "ctrlMarker",
@@ -227,7 +237,9 @@ shinyServer(function(input, output, session) {
     toLog("Creating pcrPlate")
     pcrPlateInput("pcrPlate", 
                   plateDescription = calcResults()$dTbl %>% 
-                    filter(kit %in% input$showKits & marker %in% input$showMarkers) %>% 
+                    filter(kit %in% input$showKits & 
+                             marker %in% input$showMarkers &
+                             sample %in% input$showSamples) %>% 
                     dplyr::rename(sampleType = sample.type) %>% #whisker does not support dots!
                     group_by(position) %>% 
                     mutate(#mark = sprintf("<span class='%s'></span>", sampleType),
@@ -273,14 +285,15 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(
-    c(input$pcrPlate, input$showMarkers),
+    c(input$pcrPlate, input$showMarkers, input$showSamples),
     {
       req(calcResults())
       toLog("Updating curves")
       toHideCurves <-
         which(!(calcResults()$dTbl$position %in% input$pcrPlate) |
                 !(calcResults()$dTbl$kit %in% input$showKits) |
-                !(calcResults()$dTbl$marker %in% input$showMarkers)
+                !(calcResults()$dTbl$marker %in% input$showMarkers) |
+                !(calcResults()$dTbl$sample %in% input$showSamples)
               # |
               #   !(calcResults()$dTbl$target.dyeId %in% input$showDyes)
         )
@@ -289,18 +302,33 @@ shinyServer(function(input, output, session) {
                    hideCurves = toHideCurves)
     })
   
-  output$globalResultsTbl <- renderDataTable({
+  output$detailsTbl <- renderDataTable({
     req(calcResults())
-    toLog("Creating ResultsTbl")
+    toLog("Creating DetailsTbl")
     calcResults()$dTbl %>%
       filter(position %in% input$pcrPlate &
                kit %in% input$showKits &
-               marker %in% input$showMarkers) %>% 
+               marker %in% input$showMarkers &
+               sample %in% input$showSamples) %>% 
       ungroup() %>% 
       dplyr::select(position, marker, kit, sample, sample.type,
                     Cq = cq_f, Mean_Cq = meanCq_f, Delta_Cq = deltaCq_f,
                     result, Zygosity = resultZygosity,
                     kit_QC, total_QC)
+  })
+  
+  output$summaryTbl <- renderDataTable({
+    req(calcResults())
+    toLog("Creating ResultsTbl")
+    calcResults()$dTbl %>%
+      filter(position %in% input$pcrPlate &
+               kit %in% input$showKits &
+               marker %in% input$showMarkers &
+               sample %in% input$showSamples) %>% 
+      ungroup() %>% 
+      dplyr::select(marker, sample, result) %>% 
+      dplyr::distinct() %>% 
+      spread(marker, result)
   })
 })
 

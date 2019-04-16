@@ -17,7 +17,7 @@ ui <- fluidPage(
         conditionalPanel(
           "input.preprocessCheck == true",
           sliderInput("bgRange", "Background Range",
-                       1, 40, c(10, 20), 1))
+                      1, 40, c(10, 20), 1))
       ),
       wellPanel(
         selectInput("ctrlMarker", "Control Marker", choices = ""),
@@ -35,13 +35,17 @@ ui <- fluidPage(
         fluidRow(
           column(6, selectInput("showKits", "Show Kits", choices = "", multiple = TRUE)),
           column(6, selectInput("showMarkers", "Show Markers", choices = "", multiple = TRUE))
-        )
+        ),
+        selectInput("showSamples", "Show Samples", choices = "", multiple = TRUE)
       ),
-      fluidRow(
-        column(6, uiOutput("ampCurvesUI")),
-        column(6, uiOutput("pcrPlateUI"))
-      ),
-      dataTableOutput("globalResultsTbl")
+      tabsetPanel(
+        tabPanel("Summary", 
+                 dataTableOutput("summaryTbl")),
+        tabPanel("Details", fluidRow(
+          column(6, uiOutput("ampCurvesUI")),
+          column(6, uiOutput("pcrPlateUI"))),
+          dataTableOutput("detailsTbl"))
+      )
     )
   )
 )
