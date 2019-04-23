@@ -23,7 +23,8 @@ dataType$set("public", "Preprocess",
                fpoints <- self$adp$fpoints
                fpoints$fluor <- 
                  chipPCR::CPP(fpoints$cyc, fpoints$fluor,
-                     bg.range = bgRange)$y.norm
+                              trans = TRUE,
+                              bg.range = bgRange)$y.norm
                self$adp$fpoints <- fpoints
                result <- "Ok"
                self$cq <- 
@@ -49,3 +50,13 @@ dataType$set("public", "InitEndPt",
                self$endPt <- tail(self$adp$fpoints$fluor, 1)
              },
              overwrite = TRUE)
+
+runType$set("public", "Preprocess",
+            function(bgRange) {
+              self$react <- foreach(reactN = self$react) %dopar% {
+                for (dat in reactN$data)
+                  dat$Preprocess(bgRange)
+                reactN
+              } 
+            },
+            overwrite = TRUE)

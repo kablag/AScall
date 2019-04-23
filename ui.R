@@ -11,7 +11,8 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       fileInput("inputFile",
-                HTML("Upload <b>.rdml</b>, <b>.csv</b>, <b>.lc96p</b>, <b>.xls</b> or <b>.xlsx</b> file(s):")),
+                "Upload .rdml, .csv, .lc96p, .xls or .xlsx file(s):",
+                accept = c(".rdml", ".csv", ".lc96p", ".xls", ".xlsx")),
       wellPanel(
         checkboxInput("preprocessCheck", "Preprocess Curves", TRUE),
         conditionalPanel(
@@ -25,7 +26,9 @@ ui <- fluidPage(
         numericInput("cqDelta", "Cq ∆", 2),
         numericInput("cqThr", "Cq Threshold", 30),
         numericInput("rfuThr", "RFU Threshold", 1000)),
-      actionButton("recalculate", "Calculate Results"),
+      conditionalPanel(
+        condition = "output.enableRecalculateBtn",
+        actionButton("recalculate", "Calculate Results")),
       width = 2
     ),
     
@@ -39,7 +42,8 @@ ui <- fluidPage(
         selectInput("showSamples", "Show Samples", choices = "", multiple = TRUE)
       ),
       tabsetPanel(
-        tabPanel("Summary", 
+        tabPanel("Summary",
+                 plotlyOutput("allelicDescrPlot"),
                  dataTableOutput("summaryTbl")),
         tabPanel("Details", fluidRow(
           column(6, uiOutput("ampCurvesUI")),
