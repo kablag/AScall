@@ -291,7 +291,8 @@ shinyServer(function(input, output, session) {
     radial-gradient(#000 20%, transparent 0%);
   background-size: 8px 8px;
   background-position: 0 0, 4px 4px;}
-                  ")
+                  ",
+                    interactive = TRUE)
     })
   })
   
@@ -301,7 +302,8 @@ shinyServer(function(input, output, session) {
     withProgress(message = 'Drawing Curves', value = 0, {
     renderAmpCurves("ampCurves", 
                     ampCurves = calcResults()$fData,
-                    colorBy = "marker")
+                    colorBy = "marker",
+                    interactive = TRUE)
     })
   })
   
@@ -311,13 +313,21 @@ shinyServer(function(input, output, session) {
       req(calcResults())
       toLog("Updating curves")
       toHideCurves <-
-        which(!(calcResults()$dTbl$position %in% input$pcrPlate) |
-                !(calcResults()$dTbl$kit %in% input$showKits) |
-                !(calcResults()$dTbl$marker %in% input$showMarkers) |
-                !(calcResults()$dTbl$sample %in% input$showSamples)
-              # |
-              #   !(calcResults()$dTbl$target.dyeId %in% input$showDyes)
-        )
+        calcResults()$dTbl %>% 
+        filter(!(position %in% input$pcrPlate) |
+                 !(kit %in% input$showKits) |
+                 !(marker %in% input$showMarkers) |
+                 !(sample %in% input$showSamples)) %>%
+        .$fdata.name
+        
+      
+        # which(!(calcResults()$dTbl$position %in% input$pcrPlate) |
+        #         !(calcResults()$dTbl$kit %in% input$showKits) |
+        #         !(calcResults()$dTbl$marker %in% input$showMarkers) |
+        #         !(calcResults()$dTbl$sample %in% input$showSamples)
+        #       # |
+        #       #   !(calcResults()$dTbl$target.dyeId %in% input$showDyes)
+        # )
       updateCurves(session,
                    "ampCurves",
                    hideCurves = toHideCurves)

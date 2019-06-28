@@ -1,5 +1,6 @@
 library(shiny)
 library(shinyMolBio)
+library(plotly)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
