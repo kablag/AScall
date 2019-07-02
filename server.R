@@ -358,7 +358,11 @@ shinyServer(function(input, output, session) {
     req(calcResults())
     toLog("Creating genotypesFreqPlot")
     calcResults()$dTbl %>% 
-      filter(sample.type == "unkn" & result != "") %>%
+      filter(sample.type == "unkn" & result != "" &
+               kit %in% input$showKits &
+               marker %in% input$showMarkers &
+               sample %in% input$showSamples &
+               marker != input$ctrlMarker) %>%
       group_by(marker, sample) %>%
       summarise(result = result[1]) %>% 
       ggplot(aes(x = marker)) +
