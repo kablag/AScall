@@ -354,9 +354,29 @@ shinyServer(function(input, output, session) {
       spread(marker, result)
   })
   
+  output$genotypesFreqPlot <- renderPlot({
+    req(calcResults())
+    toLog("Creating genotypesFreqPlot")
+    calcResults()$dTbl %>% 
+      filter(sample.type == "unkn" & result != "") %>%
+      group_by(marker, sample) %>%
+      summarise(result = result[1]) %>% 
+      ggplot(aes(x = marker)) +
+      geom_bar(aes( fill = result)) +
+      geom_text(aes(label = ..count.., group = result),
+                stat="count", position=position_stack(0.4),
+                color = "white") +
+      geom_text(aes(label = result, group = result),
+                stat="count", position=position_stack(0.6),
+                color = "white") +
+      theme_bw() +
+      theme(legend.position = "none")
+  })
+  
   output$allelicDescrPlot <- renderPlotly({
     req(calcResults())
     toLog("Creating allelicDescrPlot")
+    dtbb <<- calcResults()$dTbl
     tempTbl <- calcResults()$dTbl %>%
       filter(kit %in% input$showKits &
                marker %in% input$showMarkers &

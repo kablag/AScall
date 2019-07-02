@@ -61,7 +61,8 @@ ui <- fluidPage(
       ),
       tabsetPanel(
         tabPanel("Summary",
-                 plotlyOutput("allelicDescrPlot"),
+                 # plotlyOutput("allelicDescrPlot"),
+                 plotOutput("genotypesFreqPlot"),
                  dataTableOutput("summaryTbl")),
         tabPanel("Details", fluidRow(
           column(6, uiOutput("ampCurvesUI")),
