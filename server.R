@@ -320,14 +320,6 @@ shinyServer(function(input, output, session) {
                  !(sample %in% input$showSamples)) %>%
         .$fdata.name
         
-      
-        # which(!(calcResults()$dTbl$position %in% input$pcrPlate) |
-        #         !(calcResults()$dTbl$kit %in% input$showKits) |
-        #         !(calcResults()$dTbl$marker %in% input$showMarkers) |
-        #         !(calcResults()$dTbl$sample %in% input$showSamples)
-        #       # |
-        #       #   !(calcResults()$dTbl$target.dyeId %in% input$showDyes)
-        # )
       updateCurves(session,
                    "ampCurves",
                    hideCurves = toHideCurves)

@@ -15,21 +15,38 @@ ui <- fluidPage(
                 "Upload .rdml, .csv, .lc96p, .xls or .xlsx file(s):",
                 accept = c(".rdml", ".csv", ".lc96p", ".xls", ".xlsx")),
       wellPanel(
-        checkboxInput("preprocessCheck", "Preprocess Curves", TRUE),
+        tags$div(title = "Background subtraction and Cq calculation (second derivative maximum) will be applied to the curves if checked",
+                 checkboxInput("preprocessCheck", "Preprocess Curves", TRUE)
+        ),
         conditionalPanel(
           "input.preprocessCheck == true",
-          sliderInput("bgRange", "Background Range",
-                      1, 40, c(10, 20), 1))
+          tags$div(title = "Cycle range for background subtraction (linear part of the curves before exponentional growth)",
+                   sliderInput("bgRange", "Background Range",
+                               1, 40, c(5, 15), 1)
+          )
+        )
       ),
       wellPanel(
-        selectInput("ctrlMarker", "Control Marker", choices = ""),
+        tags$div(title = "Gene to be used as a positive control",
+                 selectInput("ctrlMarker", "Control Marker", choices = "")
+        ),
         # numericInput("ctrlDelta", "Control ∆", 1.5),
-        numericInput("cqDelta", "Cq ∆", 2),
-        numericInput("cqThr", "Cq Threshold", 30),
-        numericInput("rfuThr", "RFU Threshold", 1000)),
+        tags$div(title = "Maximum cycle difference for homozygosity",
+                 numericInput("cqDelta", "Cq ∆", 2)
+        ),
+        tags$div(title = "Mark curves as negative with Cq higher threshold",
+                 numericInput("cqThr", "Cq Threshold", 30)
+        ),
+        tags$div(title = "Mark curves as negative with RFU lower threshold",
+                 numericInput("rfuThr", "RFU Threshold", 300)
+        )
+      ),
       conditionalPanel(
         condition = "output.enableRecalculateBtn",
-        actionButton("recalculate", "Calculate Results")),
+        tags$div(title = "Press button to calculate results",
+                 actionButton("recalculate", "Calculate Results")
+        )
+      ),
       width = 2
     ),
     
