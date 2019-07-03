@@ -136,21 +136,40 @@ shinyServer(function(input, output, session) {
                          "Ok"
                      })
                    
+
+                   # Control Marker QC ---------------------------------------------------------------
+                   
+                   dTbl <- dTbl %>%  
+                     group_by(kit, sample) %>% 
+                     mutate(ctrlMarker_QC = 
+                     {
+                       # ampOk (and replicateMatch_QC ok )for ctrlMarker 
+                       if (any(replicateMatch_QC[marker == input$ctrlMarker] != "Ok") ||
+                           any(ampStatus_QC[marker == input$ctrlMarker] == "NoAmp"))
+                         "Fail"
+                       else
+                         "Ok"
+                     })
                    
                    # Kit total QC ------------------------------------------------------------
                    
                    dTbl <- dTbl %>%  
                      mutate(kit_QC = 
                      {
+                       # noAmp for NTC 
                        if (any(noAmpNTC_QC != "Ok"))
                          "Fail"
                        else
                          "Ok"
                      })
                    
+
+                   # Results Calc ------------------------------------------------------------
                    
                    tmpTbl <- dTbl %>%
-                     filter(kit_QC == "Ok", replicateMatch_QC == "Ok") %>%
+                     filter(kit_QC == "Ok",
+                            replicateMatch_QC == "Ok",
+                            ctrlMarker_QC == "Ok") %>%
                      group_by(kit, marker, sample) %>%
                      mutate(result = paste(allele[ampStatus_QC == "Ok"] %>% unique(), collapse = ""),
                             resultZygosity =
