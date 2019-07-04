@@ -2,6 +2,7 @@ library(RDML)
 library(tidyverse)
 library(plotly)
 library(doParallel)
+library(DT)
 
 source("generics.R")
 
@@ -136,7 +137,7 @@ shinyServer(function(input, output, session) {
                          "Ok"
                      })
                    
-
+                   
                    # Control Marker QC ---------------------------------------------------------------
                    
                    dTbl <- dTbl %>%  
@@ -163,7 +164,7 @@ shinyServer(function(input, output, session) {
                          "Ok"
                      })
                    
-
+                   
                    # Results Calc ------------------------------------------------------------
                    
                    tmpTbl <- dTbl %>%
@@ -319,10 +320,10 @@ shinyServer(function(input, output, session) {
     req(calcResults())
     toLog("Drawing curves")
     withProgress(message = 'Drawing Curves', value = 0, {
-    renderAmpCurves("ampCurves", 
-                    ampCurves = calcResults()$fData,
-                    colorBy = "marker",
-                    interactive = TRUE)
+      renderAmpCurves("ampCurves", 
+                      ampCurves = calcResults()$fData,
+                      colorBy = "marker",
+                      interactive = TRUE)
     })
   })
   
@@ -338,25 +339,50 @@ shinyServer(function(input, output, session) {
                  !(marker %in% input$showMarkers) |
                  !(sample %in% input$showSamples)) %>%
         .$fdata.name
-        
+      
       updateCurves(session,
                    "ampCurves",
                    hideCurves = toHideCurves)
     })
   
-  output$detailsTbl <- renderDataTable({
+  observeEvent(input$hoverfDataName,
+               {
+    hoverfDataName <- input$hoverfDataName
+    updateCurves(session,
+                 "ampCurves",
+                 highlightCurves = hoverfDataName)
+    updatePcrPlateInput(
+      session,
+      "pcrPlate",
+      highlightning = str_sub(hoverfDataName, end = 3))
+    paste("Highlighted:", hoverfDataName)
+  })
+  
+  output$detailsTbl <- DT::renderDataTable({
     req(calcResults())
     toLog("Creating DetailsTbl")
-    calcResults()$dTbl %>%
-      filter(position %in% input$pcrPlate &
-               kit %in% input$showKits &
-               marker %in% input$showMarkers &
-               sample %in% input$showSamples) %>% 
-      ungroup() %>% 
-      dplyr::select(position, marker, kit, sample, sample.type,
-                    Cq = cq_f, Mean_Cq = meanCq_f, Delta_Cq = deltaCq_f,
-                    result, Zygosity = resultZygosity,
-                    kit_QC, total_QC)
+    DT::datatable(
+      calcResults()$dTbl %>%
+        filter(position %in% input$pcrPlate &
+                 kit %in% input$showKits &
+                 marker %in% input$showMarkers &
+                 sample %in% input$showSamples) %>% 
+        ungroup() %>% 
+        dplyr::select(fdata.name, position, marker, kit, sample, sample.type,
+                      Cq = cq_f, Mean_Cq = meanCq_f, Delta_Cq = deltaCq_f,
+                      result, Zygosity = resultZygosity,
+                      kit_QC, total_QC),
+      rownames = FALSE,
+      options = list(
+        rowCallback = DT::JS('function(row, data) {
+                              $(row).mouseenter(function(){
+                              Shiny.onInputChange("hoverfDataName", data[0]);
+                              });
+                              $(row).mouseout(function(){
+                              Shiny.onInputChange("hoverfDataName", "");
+                              });}')
+      )
+    )
   })
   
   output$summaryTbl <- renderDataTable({
@@ -387,10 +413,10 @@ shinyServer(function(input, output, session) {
       ggplot(aes(x = marker)) +
       geom_bar(aes( fill = result)) +
       geom_text(aes(label = ..count.., group = result),
-                stat="count", position=position_stack(0.4),
+                stat="count", position = position_stack(0.4),
                 color = "white") +
       geom_text(aes(label = result, group = result),
-                stat="count", position=position_stack(0.6),
+                stat = "count", position=position_stack(0.6),
                 color = "white") +
       theme_bw() +
       theme(legend.position = "none")
@@ -416,7 +442,7 @@ shinyServer(function(input, output, session) {
     colnames(tempTbl)[c(2,3)] <- c("Allele_1", "Allele_2")
     # rtbl3 <<- tempTbl
     # ggplot(tempTbl) +
-      # geom_point(aes(x = Allele_1, y = Allele_2))
+    # geom_point(aes(x = Allele_1, y = Allele_2))
     plot_ly() %>%
       add_trace(data = tempTbl,
                 x = ~Allele_1, y = ~Allele_2,
