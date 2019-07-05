@@ -425,7 +425,6 @@ shinyServer(function(input, output, session) {
   output$allelicDescrPlot <- renderPlotly({
     req(calcResults())
     toLog("Creating allelicDescrPlot")
-    dtbb <<- calcResults()$dTbl
     tempTbl <- calcResults()$dTbl %>%
       filter(kit %in% input$showKits &
                marker %in% input$showMarkers &
@@ -453,6 +452,18 @@ shinyServer(function(input, output, session) {
       ) %>% 
       plotly::layout(showlegend = FALSE)
   })
+  
+  observeEvent(
+    input$pcrPlate_hover,
+    {
+      fdataNames <- calcResults()$dTbl %>%
+        filter(position %in% input$pcrPlate_hover) %>%
+        .$fdata.name
+      updateCurves(session,
+                   "ampCurves",
+                   highlightCurves = fdataNames)
+    }
+  )
 })
 
 
