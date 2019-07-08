@@ -2,7 +2,6 @@ library(RDML)
 library(tidyverse)
 library(plotly)
 library(doParallel)
-library(DT)
 
 source("generics.R")
 
@@ -389,7 +388,7 @@ shinyServer(function(input, output, session) {
   output$summaryTbl <- renderDataTable({
     req(calcResults())
     toLog("Creating ResultsTbl")
-    calcResults()$dTbl %>%
+    dtbl <- DT::datatable(calcResults()$dTbl %>%
       filter(kit %in% input$showKits &
                marker %in% input$showMarkers &
                sample %in% input$showSamples &
@@ -397,7 +396,8 @@ shinyServer(function(input, output, session) {
       ungroup() %>% 
       dplyr::select(marker, sample, result) %>% 
       dplyr::distinct() %>% 
-      spread(marker, result)
+      spread(marker, result))
+    dtbl
   })
   
   output$genotypesFreqPlot <- renderPlot({

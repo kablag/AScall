@@ -63,11 +63,11 @@ ui <- fluidPage(
         tabPanel("Summary",
                  # plotlyOutput("allelicDescrPlot"),
                  plotOutput("genotypesFreqPlot"),
-                 dataTableOutput("summaryTbl")),
+                 DT::dataTableOutput("summaryTbl")),
         tabPanel("Details", fluidRow(
           column(6, uiOutput("ampCurvesUI")),
           column(6, uiOutput("pcrPlateUI"))),
-          dataTableOutput("detailsTbl"))
+          DT::dataTableOutput("detailsTbl"))
       )
     )
   )
