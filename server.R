@@ -361,7 +361,7 @@ shinyServer(function(input, output, session) {
   output$detailsTbl <- DT::renderDataTable({
     req(calcResults())
     toLog("Creating DetailsTbl")
-    DT::datatable(
+    dtbl <- DT::datatable(
       calcResults()$dTbl %>%
         filter(position %in% input$pcrPlate &
                  kit %in% input$showKits &
@@ -383,7 +383,7 @@ shinyServer(function(input, output, session) {
                               });}')
       )
     )
-    dts
+    dtbl
   })
   
   output$summaryTbl <- renderDataTable({
