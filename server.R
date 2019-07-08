@@ -360,7 +360,7 @@ shinyServer(function(input, output, session) {
   output$detailsTbl <- DT::renderDataTable({
     req(calcResults())
     toLog("Creating DetailsTbl")
-    dtbl <- DT::datatable(
+    DT::datatable(
       calcResults()$dTbl %>%
         filter(position %in% input$pcrPlate &
                  kit %in% input$showKits &
@@ -382,13 +382,12 @@ shinyServer(function(input, output, session) {
                               });}')
       )
     )
-    dtbl
   })
   
-  output$summaryTbl <- renderDataTable({
+  output$summaryTbl <- DT::renderDataTable({
     req(calcResults())
     toLog("Creating ResultsTbl")
-    dtbl <- DT::datatable(calcResults()$dTbl %>%
+    DT::datatable(calcResults()$dTbl %>%
       filter(kit %in% input$showKits &
                marker %in% input$showMarkers &
                sample %in% input$showSamples &
@@ -397,7 +396,6 @@ shinyServer(function(input, output, session) {
       dplyr::select(marker, sample, result) %>% 
       dplyr::distinct() %>% 
       spread(marker, result))
-    dtbl
   })
   
   output$genotypesFreqPlot <- renderPlot({
