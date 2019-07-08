@@ -383,6 +383,7 @@ shinyServer(function(input, output, session) {
                               });}')
       )
     )
+    dts
   })
   
   output$summaryTbl <- renderDataTable({

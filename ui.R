@@ -16,7 +16,7 @@ ui <- fluidPage(
                 accept = c(".rdml", ".csv", ".lc96p", ".xls", ".xlsx")),
       wellPanel(
         tags$div(title = "Background subtraction and Cq calculation (second derivative maximum) will be applied to the curves if checked",
-                 checkboxInput("preprocessCheck", "Preprocess Curves", TRUE)
+                 checkboxInput("preprocessCheck", "Preprocess Curves", FALSE)
         ),
         conditionalPanel(
           "input.preprocessCheck == true",
