@@ -166,12 +166,20 @@ shinyServer(function(input, output, session) {
                    
                    # Results Calc ------------------------------------------------------------
                    
+                   genResult <- function(okAlleles) {
+                     okAlleles <-  unique(okAlleles)
+                     if (length(okAlleles) == 1) {
+                       okAlleles <- c(okAlleles, okAlleles)
+                     }
+                     paste(okAlleles, collapse = "")
+                   }
+                   
                    tmpTbl <- dTbl %>%
                      filter(kit_QC == "Ok",
                             replicateMatch_QC == "Ok",
                             ctrlMarker_QC == "Ok") %>%
                      group_by(kit, marker, sample) %>%
-                     mutate(result = paste(allele[ampStatus_QC == "Ok"] %>% unique(), collapse = ""),
+                     mutate(result = genResult(allele[ampStatus_QC == "Ok"]),
                             resultZygosity =
                               sapply(result,
                                      function(x) switch(as.character(str_length(x)),
@@ -179,11 +187,12 @@ shinyServer(function(input, output, session) {
                                                         "1" = "Homo", "2" = "Hetero", "Error"))
                      )
                    dTbl <- left_join(dTbl, tmpTbl)
-                   
+                   dTbl$result[dTbl$result == ""] <- NA
+                     
                    # combine all errors in one column
                    qcColumns <- grep("_QC", colnames(dTbl), value = TRUE)
                    dTbl$total_QC <- apply(dTbl %>%
-                                            ungroup() %>%
+                                            ungroup() %>% 
                                             dplyr::select(ends_with("_QC")), 1,
                                           function(x) {
                                             filterFails <- x != "Ok"
@@ -202,7 +211,9 @@ shinyServer(function(input, output, session) {
                        cq_f = round(cq, digits = 2),
                        meanCq_f = round(meanCq, digits = 2),
                        deltaCq_f = round(deltaCq, digits = 2),
-                       result = ifelse(is.na(result), "", result)
+                       result = ifelse(is.na(result), 
+                                       "!NA!", 
+                                       result)
                      ),
                    fData = fData,
                    calcParams = list(
@@ -402,7 +413,7 @@ shinyServer(function(input, output, session) {
     req(calcResults())
     toLog("Creating genotypesFreqPlot")
     calcResults()$dTbl %>% 
-      filter(sample.type == "unkn" & result != "" &
+      filter(sample.type == "unkn" & #result != "" &
                kit %in% input$showKits &
                marker %in% input$showMarkers &
                sample %in% input$showSamples &
@@ -412,10 +423,10 @@ shinyServer(function(input, output, session) {
       ggplot(aes(x = marker)) +
       geom_bar(aes( fill = result)) +
       geom_text(aes(label = ..count.., group = result),
-                stat="count", position = position_stack(0.4),
+                stat = "count", position = position_stack(0.4),
                 color = "white") +
       geom_text(aes(label = result, group = result),
-                stat = "count", position=position_stack(0.6),
+                stat = "count", position = position_stack(0.6),
                 color = "white") +
       theme_bw() +
       theme(legend.position = "none")
