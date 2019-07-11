@@ -13,7 +13,8 @@ ui <- fluidPage(
     sidebarPanel(
       fileInput("inputFile",
                 "Upload .rdml, .csv, .lc96p, .xls or .xlsx file(s):",
-                accept = c(".rdml", ".csv", ".lc96p", ".xls", ".xlsx")),
+                accept = c(".rdml", ".csv", ".lc96p", ".xls", ".xlsx"),
+                multiple = TRUE),
       wellPanel(
         tags$div(title = "Background subtraction and Cq calculation (second derivative maximum) will be applied to the curves if checked",
                  checkboxInput("preprocessCheck", "Preprocess Curves", FALSE)
@@ -64,10 +65,12 @@ ui <- fluidPage(
                  # plotlyOutput("allelicDescrPlot"),
                  plotOutput("genotypesFreqPlot"),
                  DT::dataTableOutput("summaryTbl")),
-        tabPanel("Details", fluidRow(
-          column(6, uiOutput("ampCurvesUI")),
-          column(6, uiOutput("pcrPlateUI"))),
-          DT::dataTableOutput("detailsTbl"))
+        tabPanel("Details", 
+                 selectInput("showFile", "File Details", choices = ""),
+                 fluidRow(
+                   column(6, uiOutput("ampCurvesUI")),
+                   column(6, uiOutput("pcrPlateUI"))),
+                 DT::dataTableOutput("detailsTbl"))
       )
     )
   )
