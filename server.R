@@ -1,7 +1,7 @@
 library(RDML)
 library(tidyverse)
 library(plotly)
-library(doParallel)
+# library(doParallel)
 
 source("generics.R")
 
@@ -287,7 +287,7 @@ shinyServer(function(input, output, session) {
   observeEvent(preCalcTbl(),
                {
                  toLog("Updating Kits select")
-                 updateSelectInput(session,
+                 updatePickerInput(session,
                                    "showKits",
                                    choices = unique(preCalcTbl()$kit),
                                    selected = unique(preCalcTbl()$kit))
@@ -301,7 +301,7 @@ shinyServer(function(input, output, session) {
                    filter(kit %in% input$showKits) %>% 
                    .$marker %>% 
                    unique()
-                 updateSelectInput(session,
+                 updatePickerInput(session,
                                    "showMarkers",
                                    choices = markers,
                                    selected = markers)
@@ -310,7 +310,7 @@ shinyServer(function(input, output, session) {
   observeEvent(preCalcTbl(),
                {
                  toLog("Updating Samples select")
-                 updateSelectInput(session,
+                 updatePickerInput(session,
                                    "showSamples",
                                    choices = unique(preCalcTbl()$sample),
                                    selected = unique(preCalcTbl()$sample))
@@ -346,6 +346,18 @@ shinyServer(function(input, output, session) {
     req(preDetailsTbl())
     toLog("Creating pcrPlate")
     withProgress(message = 'Creating PCR Plate', value = 0, {
+      kitsNames <- unique(preDetailsTbl()$kit)
+      nKits <- length(kitsNames)
+      kitsColors <- brewer.pal(nKits, "Accent")[1:nKits]
+      kitsColorsCSS <- paste(
+        sprintf("#{{id}} .%s{background-color: %s ;}",
+                kitsNames, kitsColors), collapse = "")
+      legendText <- tags$div(
+              lapply(kitsNames,
+                     function(kname) tags$span(class = kname, kname)),
+              tags$span(class = "ntc", "NTC")
+              )
+      
       pcrPlateInput("pcrPlate", 
                     plateDescription = preDetailsTbl() %>% 
                       filter(kit %in% input$showKits & 
@@ -373,18 +385,14 @@ shinyServer(function(input, output, session) {
                     wellLabelTemplate = "<b>{{kitError}}</b> {{sample}}",
                     onHoverWellTextTemplate = "{{position}}\n{{sample}}\n{{sampleType}}\n{{kit}}\n{{onHoverTbl}}",
                     wellClassTemplate = "{{kit}} {{kit_QC}} {{sampleType}}",
-                    cssText = "#{{id}} td.selected-well{border: 2px solid red !important;}
-                  #{{id}} .kit_01{background-color: Plum ;}
-                  #{{id}} .kit_02{background-color: LightGrey ;}
-                  #{{id}} .kit_03{background-color: PaleGreen ;}
-                  #{{id}} .kit_04{background-color: Salmon ;}
-                  #{{id}} .kit_05{background-color: DeepSkyBlue ;}
-                  #{{id}} .ntc{background-image:
+                    cssText = paste0("#{{id}} td.selected-well{border: 2px solid red !important;}",
+                                     kitsColorsCSS,
+                  "#{{id}} .ntc{background-image:
     radial-gradient(#000 20%, transparent 0%),
     radial-gradient(#000 20%, transparent 0%);
   background-size: 8px 8px;
-  background-position: 0 0, 4px 4px;}
-                  ",
+  background-position: 0 0, 4px 4px;}"),
+                  legend = legendText,
                     interactive = TRUE)
     })
   })
@@ -538,92 +546,3 @@ shinyServer(function(input, output, session) {
     }
   )
 })
-
-
-
-# res <- dTbl %>% 
-#   group_by(fdata.name) %>% 
-#   mutate(
-#     cq = ifelse(is.na(cq), maxCycle, cq),
-#     cq_QC = ifelse(cq <= input$cqThr, 
-#                    "Ok", 
-#                    sprintf("Cq %.2f > %.2f", cq, input$cqThr)) ) %>% 
-#   group_by(kit, marker, allele, sample) %>% 
-#   mutate(
-#     meanCq = mean(cq),
-#     meanCq_QC = ifelse(meanCq <= input$cqThr, 
-#                        "Ok", 
-#                        sprintf("Mean Cq %.2f > %.2f", meanCq, input$cqThr)),
-#     deltaCq = max(cq) - min(cq),
-#     # check that Cq ∆ is lower than thr value (ctrl marker has own thr)
-#     deltacq_QC = { 
-#       ifelse(deltaCq <= ifelse(marker == input$ctrlMarker,
-#                                input$cqDelta, 
-#                                input$cqDelta),
-#              "Ok",
-#              sprintf("Mean Cq %.2f > %.2f", meanCq, ifelse(marker == input$ctrlMarker,
-#                                                            input$cqDelta, 
-#                                                            input$cqDelta))
-#       )
-#     },
-#     # Preformat for output
-#     cq_f = round(cq, digits = 2),
-#     meanCq_f = round(meanCq, digits = 2),
-#     deltaCq_f = round(deltaCq, digits = 2)) %>% 
-#   group_by(position) %>% 
-#   mutate(
-#     ctrlMarker_QC = 
-#       if (cq_QC[marker == input$ctrlMarker] != "Ok" ||
-#           meanCq_QC[marker == input$ctrlMarker] != "Ok" ||
-#           deltacq_QC[marker == input$ctrlMarker] != "Ok") "Bad Control Marker"
-#     else "Ok"
-#   ) %>%
-#   group_by(kit) %>% 
-#   mutate(
-#     ntc_QC = if (any(cq_QC[sample.type == "ntc"] == "Ok"))
-#       "Bad NTC" else "Ok",
-#     kit_QC = ifelse(ntc_QC != "Ok", "Kit Error", "Ok")
-#   ) %>% 
-#   group_by(kit, allele) %>% 
-#   mutate(
-#     pos_QC = if (all(ctrlMarker_QC[sample.type == "pos"] != "Ok") &
-#                  xor(all(cq_QC[sample.type == "pos" & 
-#                                grepl("ref", sample) & 
-#                                marker != input$ctrlMarker] == "Ok") & 
-#                      all(meanCq_QC[sample.type == "pos" & 
-#                                    grepl("ref", sample) & 
-#                                    marker != input$ctrlMarker] == "Ok") &
-#                      all(deltacq_QC[sample.type == "pos" & 
-#                                     grepl("ref", sample) & 
-#                                     marker != input$ctrlMarker] == "Ok"),
-#                      all(cq_QC[sample.type == "pos" & 
-#                                grepl("alt", sample) & 
-#                                marker != input$ctrlMarker] == "Ok") & 
-#                      all(meanCq_QC[sample.type == "pos" & 
-#                                    grepl("alt", sample) & 
-#                                    marker != input$ctrlMarker] == "Ok") &
-#                      all(deltacq_QC[sample.type == "pos" & 
-#                                     grepl("alt", sample) & 
-#                                     marker != input$ctrlMarker] == "Ok")))
-#     "Ok" else "Bad Pos"
-#     # TODO: check alt = Ok & alt = Ok   or  ref = Ok & ref = Ok
-#     
-#   )
-# fRes <- res %>% 
-#   # filter(ctrlMarker_QC == "Ok", kit_QC == "Ok") %>% 
-#   group_by(kit, marker, sample) %>% 
-#   mutate(result = paste(allele[cq_QC == "Ok"] %>% unique(), collapse = ""),
-#          resultZygosity = 
-#            sapply(result, 
-#                   function(res) switch(as.character(str_length(res)),
-#                                        "0" = "",
-#                                        "1" = "Homo", "2" = "Hetero", "Error"))
-#   )
-# res <- left_join(res, fRes)
-# # testTbl <<- res
-# # combine all errors in one column
-# res$total_QC <- apply(res %>% 
-#                         ungroup() %>% 
-#                         dplyr::select(ends_with("_QC")), 1,
-#                       function(x) paste(x[x != "Ok"], collapse = ", "))
-# res

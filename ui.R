@@ -1,10 +1,23 @@
 library(shiny)
 library(shinyMolBio)
+library(shinyWidgets)
 library(plotly)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-  
+  tags$head(
+    tags$style(
+      HTML(".shiny-notification {
+           height: 50px;
+           width: 400px;
+           position:fixed;
+           top: calc(50% - 25px);;
+           left: calc(50% - 200px);;
+           }
+           "
+      )
+    )
+  ),
   # Application title
   titlePanel("AScall"),
   
@@ -55,10 +68,16 @@ ui <- fluidPage(
     mainPanel(
       wellPanel(
         fluidRow(
-          column(6, selectInput("showKits", "Show Kits", choices = "", multiple = TRUE)),
-          column(6, selectInput("showMarkers", "Show Markers", choices = "", multiple = TRUE))
+          column(6, pickerInput("showKits", "Show Kits", choices = "",
+                                multiple = TRUE, 
+                                options = list("actions-box" = TRUE))),
+          column(6, pickerInput("showMarkers", "Show Markers", choices = "",
+                                multiple = TRUE, 
+                                options = list("actions-box" = TRUE)))
         ),
-        selectInput("showSamples", "Show Samples", choices = "", multiple = TRUE)
+        pickerInput("showSamples", "Show Samples", choices = "",
+                    multiple = TRUE, 
+                    options = list("actions-box" = TRUE))
       ),
       tabsetPanel(
         tabPanel("Summary",
