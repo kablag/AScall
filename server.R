@@ -2,6 +2,7 @@ library(RDML)
 library(tidyverse)
 library(plotly)
 # library(doParallel)
+library(RColorBrewer)
 
 source("generics.R")
 
