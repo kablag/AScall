@@ -462,7 +462,9 @@ shinyServer(function(input, output, session) {
                               });
                               $(row).mouseout(function(){
                               Shiny.onInputChange("hoverfDataName", "");
-                              });}')
+                              });}'),
+        #hide column fdata.name
+        columnDefs = list(list(visible = FALSE, targets = c(0))) 
       )
     )
   })
