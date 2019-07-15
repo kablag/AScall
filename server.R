@@ -346,6 +346,12 @@ shinyServer(function(input, output, session) {
   output$pcrPlateUI <- renderUI({
     req(preDetailsTbl())
     toLog("Creating pcrPlate")
+    filteredTbl <- preDetailsTbl() %>% 
+      filter(kit %in% input$showKits & 
+               marker %in% input$showMarkers &
+               sample %in% input$showSamples)
+    if (nrow(filteredTbl) == 0)
+      return()
     withProgress(message = 'Creating PCR Plate', value = 0, {
       kitsNames <- unique(preDetailsTbl()$kit)
       nKits <- length(kitsNames)
@@ -360,10 +366,7 @@ shinyServer(function(input, output, session) {
               )
       
       pcrPlateInput("pcrPlate", 
-                    plateDescription = preDetailsTbl() %>% 
-                      filter(kit %in% input$showKits & 
-                               marker %in% input$showMarkers &
-                               sample %in% input$showSamples) %>% 
+                    plateDescription =  filteredTbl %>% 
                       dplyr::rename(sampleType = sample.type) %>% #whisker does not support dots!
                       group_by(position) %>% 
                       mutate(#mark = sprintf("<span class='%s'></span>", sampleType),
