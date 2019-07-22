@@ -479,7 +479,8 @@ shinyServer(function(input, output, session) {
                     filter(kit %in% input$showKits &
                              marker %in% input$showMarkers &
                              sample %in% input$showSamples &
-                             marker != input$ctrlMarker) %>% 
+                             marker != input$ctrlMarker &
+                             sample.type == "unkn") %>% 
                     ungroup() %>% 
                     dplyr::select(marker, sample, result) %>% 
                     dplyr::distinct() %>% 
@@ -505,8 +506,11 @@ shinyServer(function(input, output, session) {
       geom_text(aes(label = result, group = result),
                 stat = "count", position = position_stack(0.6),
                 color = "white") +
+      ylab("N genotypes") +
       theme_bw() +
-      theme(legend.position = "none")
+      theme(legend.position = "none",
+            axis.text.x = element_text(angle = 45, hjust = 1),
+            axis.title.x = element_blank())
   })
   
   output$allelicDescrPlot <- renderPlotly({
@@ -516,7 +520,8 @@ shinyServer(function(input, output, session) {
       filter(kit %in% input$showKits &
                marker %in% input$showMarkers &
                sample %in% input$showSamples &
-               marker != input$ctrlMarker) %>% 
+               marker != input$ctrlMarker &
+               sample.type == "unkn") %>% 
       dplyr::select(marker, allele, sample, result, meanCq_f) %>%
       group_by(marker) %>% 
       mutate(alleleN = allele %>% as.factor() %>% as.numeric()) %>% 
