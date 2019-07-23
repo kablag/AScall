@@ -19,7 +19,8 @@ multiply selectors - *pickerInput*, *shinyMolBio* for PCR plate - *pcrPlateInput
 and PCR curves plot - *renderAmpCurves*.
 
 > General note: some of operations are time consuming (e.g. curves preprocession).
-So be patient!!!
+So be patient!!! To avoid recalculations after each option change all setup is 
+applied by clicking **Recalculate Results** button.
 
 ### Installation
 
@@ -38,7 +39,7 @@ Process of analysis can be described by several major steps:
 
 ## Data import
 
-You can input one or more files in a format supported by the [RDML](https://cran.r-project.org/web/packages/RDML/index.html) package: 
+You can input one or more files in a format supported by the *RDML* package: 
 **rdml**, **lc96p**, **xlsx**, **etc**. But *AScall* need correct sample naming 
 to work as automatic genotype caller. Naming convention and export will be shown 
 for *BioRad CFX Manager 3.1* as example. Several files can be imported at once – 
@@ -62,8 +63,10 @@ after **underscore** - GENENAME_ALLELENAME pattern. Green box on the figure -
 alleles.
 * Control gene name have to be equal for all plates. Blue box **B2m**.
 * No template controls must have **NTC** sample type.
-* All tubes with the same targets *AScall* interpretes as one **kit**. Orange box
+* Target name without allele name called **marker**.
+* All tubes with the same markers *AScall* interpretes as one **kit**. Orange box
 on the fig.1.
+
 
 ### Export data from BioRad CFX Manager
 After plate setup is done you can import data by **Export>Export RDML File>RDML v1.1**
@@ -81,7 +84,7 @@ should check **Preprocess Curves** (Fig.3).
 
 After that several additional option **Background Region** appears. You can set 
 signal background region (linear part of the curves before exponentional growth)
-for all curves using this slider.
+for all curves using this slider (Click **Recalculate Results** to apply changes).
 
 Processing consists of the following three steps:
 
@@ -102,3 +105,13 @@ qpcR::pcrfit(fpoints[, c("cyc", "fluor")],
 qpcR::efficiency(fitted, plot = FALSE,
            type = "cpD2")$cpD2
 ```
+
+## Genotype Calling
+
+### Options
+After loading all data files **Recalculate Results** button appears and subsequent
+analisys can be done. First of all you can fine tune several options (Fig.3):
+
+* __Control Marker__ - select any detected marker as *control marker* - reaction that
+have to be positive in all samples.
+* __Cq ∆__ - maximum difference between *Cq* values of samples replicates.
