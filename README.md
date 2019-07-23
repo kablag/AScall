@@ -32,4 +32,25 @@ Process of analysis can be described by several major steps:
 ## Data import
 
 You can input one or more files in a format supported by the *RDML* package: 
-**rdml**, **lc96p**, **xlsx**, **etc**.
+**rdml**, **lc96p**, **xlsx**, **etc**. But *AScall* need correct sample naming 
+to work as automatic genotype caller.Naming convention and export will be shown 
+for *BioRad CFX Manager 3.1* as example.
+
+Correct plate setup is shown on the fig.1:
+
+![Figure 1. Plate Setup](ext/plate_setup.png)
+
+There several major elements:
+
+* All tubes with one sample have to be **named equaly**. Marked with the red box **p181**
+on the fig.1: despites the different names of targets - sample names are equal. 
+Same rule for replicates - there should not be any indices!
+* Target names for not control genes have to contain **gene name** and **allele name** 
+after **underscore** - GENENAME_ALLELENAME pattern. Green box on the figure - 
+**HER2_C** **and HER2_G** where **HER2** is the gene name and **C** or **G** are
+alleles.
+* Control gene name have to be equal for all plates. Blue box **B2m**.
+* No template controls must have **NTC** sample type.
+* All tubes with the same targets *AScall* interpretes as one **kit**. Orange box
+on the fig.1.
+
