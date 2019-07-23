@@ -18,6 +18,9 @@ GUI use standard *shiny* elements,
 multiply selectors - *pickerInput*, *shinyMolBio* for PCR plate - *pcrPlateInput*
 and PCR curves plot - *renderAmpCurves*.
 
+> General note: some of operations are time consuming (e.g. curves preprocession).
+So be patient!!!
+
 ### Installation
 
 Copy all files (or generics.R, server.R, ui.R for minimal installation) to any

@@ -1,5 +1,5 @@
 #list of packages required
-list.of.packages <- c("chipPCR", "qpcR", "DT", 
+list.of.packages <- c("chipPCR", "qpcR", "DT", "doParallel",
                       "tidyverse", "plotly", "RColorBrewer",
                       "shiny", "RDML", "shinyMolBio",
                       "shinyWidgets")
