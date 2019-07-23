@@ -1,18 +1,18 @@
 library(RDML)
 library(tidyverse)
 library(plotly)
-# library(doParallel)
+library(doParallel)
 library(RColorBrewer)
 
 source("generics.R")
 
-# nCores <- detectCores()
-# cl <- makeCluster(nCores)
-# registerDoParallel(cl)
+nCores <- detectCores()
+cl <- makeCluster(nCores)
+registerDoParallel(cl)
 
 onStop(function() {
   toLog("Doing application cleanup")
-  # stopCluster(cl)
+  stopCluster(cl)
 })
 
 shinyServer(function(input, output, session) {
