@@ -1,9 +1,6 @@
----
-title: "AScall – automatic allele-specific qPCR analysis"
-output: html_document
----
+# AScall – automatic allele-specific qPCR analysis
 
-# Introduction
+## Introduction
 
 AScall is a web tool providing automatic processing of allele specific real-time
 PCR experiments: variation conducted real-time whereis each allele is detected 
@@ -17,14 +14,14 @@ packages, our program uses a number of specific PCR- oriented packages:
 [RDML](https://cran.r-project.org/web/packages/RDML/index.html),
 [shinyMolBio](https://cran.r-project.org/web/packages/shinyMolBio/index.html).
 
-## Installation
+### Installation
 
 Copy all files (or generics.R, server.R, ui.R for minimal installation) to any
 directory on your computer and 
 [run](https://shiny.rstudio.com/articles/running.html) as usual *shiny*
 application. All necessary packages will be installed during application run.
 
-## Workflow overview
+### Workflow overview
 
 Process of analysis can be described by several major steps:
 * data import from PCR machines via RDML format;
@@ -32,7 +29,7 @@ Process of analysis can be described by several major steps:
 * overall experiment quality control and individual sample control;
 * sample genotype calling. 
 
-# Data import
+## Data import
 
 You can input one or more files in a format supported by the *RDML* package: 
 **rdml**, **lc96p**, **xlsx**, **etc**.
