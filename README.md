@@ -114,4 +114,7 @@ analisys can be done. First of all you can fine tune several options (Fig.3):
 
 * __Control Marker__ - select any detected marker as *control marker* - reaction that
 have to be positive in all samples.
-* __Cq ∆__ - maximum difference between *Cq* values of samples replicates.
+* __Cq ∆__ - maximum difference between **Cq** values of reactions replicates.
+* __Cq Threshold__ - max **Cq** values to be reaction treated as positive.
+* __RFU Threshold__ - minimum fluorescence signal to be reaction treated as 
+positive.
