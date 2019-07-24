@@ -106,7 +106,7 @@ qpcR::efficiency(fitted, plot = FALSE,
            type = "cpD2")$cpD2
 ```
 
-## Genotype Calling
+## Genotype calling
 
 ### Options
 After loading all data files **Recalculate Results** button appears and subsequent
@@ -118,3 +118,68 @@ have to be positive in all samples.
 * __Cq Threshold__ - max **Cq** values to be reaction treated as positive.
 * __RFU Threshold__ - minimum fluorescence signal to be reaction treated as 
 positive.
+
+### Analysis and QC steps
+
+* Low RFU - all reactions with **RFU** lower than **RFU Threshold** are marked with 
+`RFU_QC = "Low"` 
+```
+RFU_QC = ifelse(endPt < input$rfuThr, 
+                "Low", "Ok"))
+```
+* Mark amplification status - negative for reactions with `RFU_QC != "Ok"` and
+**Cq** higher than **Cq Threshold**
+```
+ampStatus_QC = ifelse(RFU_QC != "Ok" | cq > input$cqThr, 
+                     "NoAmp", "Ok")
+```
+* Replicate match check - all replicates have to be `ampStatus_QC = "NoAmp"` or 
+(`ampStatus_QC = "Ok"` and difference between **Cq** values lower than **Cq ∆** option)
+```
+meanCq = mean(cq),
+deltaCq = max(cq) - min(cq)
+replicateMatch_QC = {
+    if ((all(ampStatus_QC == "Ok") && deltaCq[1] < input$cqDelta) ||
+        all(ampStatus_QC != "Ok")) "Ok" else "Fail"
+```
+* NTC no amplification - all NTC reactions in kit have to be 
+`ampStatus_QC = "NoAmp"`
+```
+noAmpNTC_QC = 
+  {
+    if (any(ampStatus_QC[sample.type == "ntc"] == "Ok"))
+        "Fail" else  "Ok"
+  }
+```                   
+* Control Marker QC - `ampStatus_QC = "Ok"` and `replicateMatch_QC = "Ok"` for 
+**Control Marker** reactions
+```
+ctrlMarker_QC = 
+  {
+    if (any(replicateMatch_QC[marker == input$ctrlMarker] != "Ok") ||
+       any(ampStatus_QC[marker == input$ctrlMarker] == "NoAmp"))
+            "Fail" else "Ok"
+  }
+```
+* Kit total QC - `noAmpNTC_QC != "Ok"` for all NTC 
+```
+kit_QC = 
+  {
+    if (any(noAmpNTC_QC != "Ok"))
+      "Fail" else "Ok"
+  }
+```
+* Results Calc - calculates for all sample which are 
+`kit_QC == "Ok" & replicateMatch_QC == "Ok" & ctrlMarker_QC == "Ok"`.
+Then result is a combination of alleles with `ampStatus_QC == "Ok"`.
+```
+result = genResult(allele[ampStatus_QC == "Ok"])
+resultZygosity = sapply(result,
+                       function(x) switch(
+                         as.character(str_length(x)),
+                         "0" = "",
+                         "1" = "Homo",
+                         "2" = "Hetero",
+                         "Error")
+                       )
+```
