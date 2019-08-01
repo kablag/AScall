@@ -50,7 +50,7 @@ settings will be the same for all plates!).
 ### Plate setup
 Correct plate setup is shown on the fig.1:
 
-![Figure 1. Plate Setup](ext/plate_setup.svg){ width=250px }
+![Figure 1. Plate Setup](ext/plate_setup.png)
 
 There are several major elements:
 
