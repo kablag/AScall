@@ -50,7 +50,7 @@ settings will be the same for all plates!).
 ### Plate setup
 Correct plate setup is shown on the fig.1:
 
-![Figure 1. Plate Setup](ext/plate_setup.png)
+![Figure 1. Plate Setup](ext/plate_setup.svg){ width=250px }
 
 There are several major elements:
 
@@ -191,4 +191,19 @@ details views.
 * __Summary view__ - global genotyping results for all PCR files.
 * __Details view__ - per file view of PCR curves and plate with QC results.
 
+![Figure 4. AScall GUI](ext/options.png)
+
 ### Global filters 
+
+Global filters allow to select individual samples, markers or kits for viewing at
+details and summary.
+
+### Summary view
+
+This view shows all genotyping results for all loaded files as bar plot and table.
+**Barplot** allows to overview results by markers: x-axis is marker and y-axis is
+number of samples grouped by genotypes of this marker. **Table** represents 
+genotyping results by samples.
+
+### Details view
+
