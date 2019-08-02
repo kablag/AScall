@@ -445,7 +445,7 @@ shinyServer(function(input, output, session) {
                  updatePcrPlateInput(
                    session,
                    "pcrPlate",
-                   highlightning = str_sub(hoverfDataName, end = 3))
+                   highlighting = str_sub(hoverfDataName, end = 3))
                  paste("Highlighted:", hoverfDataName)
                })
   
