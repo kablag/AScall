@@ -285,6 +285,12 @@ shinyServer(function(input, output, session) {
                }
   )
   
+  output$enableReportBtn <- reactive({
+    req(calcResults())
+    TRUE
+  })
+  outputOptions(output, "enableReportBtn", suspendWhenHidden = FALSE)
+  
   observeEvent(preCalcTbl(),
                {
                  toLog("Updating Kits select")

@@ -89,19 +89,19 @@ for all curves using this slider (Click **Recalculate Results** to apply changes
 Processing consists of the following three steps:
 
 * Background subtraction
-```
+```r
 chipPCR::CPP(fpoints$cyc, fpoints$fluor,
              trans = TRUE,
              bg.range = bgRange)$y.norm
 ```
 * Model **l5** fitting
-```
+```r
 qpcR::pcrfit(fpoints[, c("cyc", "fluor")], 
        cyc = 1, fluo = 2,
        model = l5)
 ```
 * Cq calculation
-```
+```r
 qpcR::efficiency(fitted, plot = FALSE,
            type = "cpD2")$cpD2
 ```
@@ -123,19 +123,19 @@ positive.
 
 * Low RFU - all reactions with **RFU** lower than **RFU Threshold** are marked with 
 `RFU_QC = "Low"` 
-```
+```r
 RFU_QC = ifelse(endPt < input$rfuThr, 
                 "Low", "Ok"))
 ```
 * Mark amplification status - negative for reactions with `RFU_QC != "Ok"` and
 **Cq** higher than **Cq Threshold**
-```
+```r
 ampStatus_QC = ifelse(RFU_QC != "Ok" | cq > input$cqThr, 
                      "NoAmp", "Ok")
 ```
 * Replicate match check - all replicates have to be `ampStatus_QC = "NoAmp"` or 
 (`ampStatus_QC = "Ok"` and difference between **Cq** values lower than **Cq ∆** option)
-```
+```r
 meanCq = mean(cq),
 deltaCq = max(cq) - min(cq)
 replicateMatch_QC = {
@@ -144,7 +144,7 @@ replicateMatch_QC = {
 ```
 * NTC no amplification - all NTC reactions in kit have to be 
 `ampStatus_QC = "NoAmp"`
-```
+```r
 noAmpNTC_QC = 
   {
     if (any(ampStatus_QC[sample.type == "ntc"] == "Ok"))
@@ -153,7 +153,7 @@ noAmpNTC_QC =
 ```                   
 * Control Marker QC - `ampStatus_QC = "Ok"` and `replicateMatch_QC = "Ok"` for 
 **Control Marker** reactions
-```
+```r
 ctrlMarker_QC = 
   {
     if (any(replicateMatch_QC[marker == input$ctrlMarker] != "Ok") ||
@@ -162,7 +162,7 @@ ctrlMarker_QC =
   }
 ```
 * Kit total QC - `noAmpNTC_QC != "Ok"` for all NTC 
-```
+```r
 kit_QC = 
   {
     if (any(noAmpNTC_QC != "Ok"))
@@ -172,7 +172,7 @@ kit_QC =
 * Results Calc - calculates for all sample which are 
 `kit_QC == "Ok" & replicateMatch_QC == "Ok" & ctrlMarker_QC == "Ok"`.
 Then result is a combination of alleles with `ampStatus_QC == "Ok"`.
-```
+```r
 result = genResult(allele[ampStatus_QC == "Ok"])
 resultZygosity = sapply(result,
                        function(x) switch(
@@ -187,23 +187,58 @@ resultZygosity = sapply(result,
 There are three main elements:
 
 * __Global filters__ - serve to filter kits, samples and markers for summary and
-details views.
+details views (fig.4A).
 * __Summary view__ - global genotyping results for all PCR files.
 * __Details view__ - per file view of PCR curves and plate with QC results.
 
-![Figure 4. AScall GUI](ext/options.png)
+![Figure 4. AScall GUI - summary view](ext/summary_view.png)
 
 ### Global filters 
 
 Global filters allow to select individual samples, markers or kits for viewing at
-details and summary.
+details and summary (fig.4A).
 
 ### Summary view
 
 This view shows all genotyping results for all loaded files as bar plot and table.
 **Barplot** allows to overview results by markers: x-axis is marker and y-axis is
-number of samples grouped by genotypes of this marker. **Table** represents 
-genotyping results by samples.
+number of samples grouped by genotypes of this marker (fig.4B). **Table** represents 
+genotyping results by samples (fig.4C).
 
 ### Details view
 
+![Figure 5. AScall GUI - details view](ext/details_view.png)
+
+This view provides access to additional per plate details about PCR curves and analysis.
+It consists of:
+
+* __File selector__ - you can switch uploaded experiments by this elements (fig.5A).
+* __PCR curves__ - created by `shinyMolBio::renderAmpCurves()` function (fig.5B).
+Curves are colored by _marker_.
+* __PCR plate__ - created by `shinyMolBio::pcrPlateInput()` function (fig.5C).
+Wells are color by _kit_; dotted wells contain NTC (see legend under plate).
+Selected wells have red border and light yellow background is for _on hover_ well 
+(selection filters curves on __PCR curves__ plot and the _on hover_ curves are solid 
+while the others are - transparent).  __On hover__ well provides additionalinfo 
+inside black box.
+* __Details table__ - show information about every PCR curve including genotyping 
+results and QC (fig.5D).
+
+# Appendix: QC results
+
+1. __RFU_QC__
+  * __Low__ - curve endpoint fluorescence signal is lower than __RFU Threshold__
+  * __Ok__
+2. __ampStatus_QC__
+  * __NoAmp__ - anmlification for this curve is not detected
+  * __Ok__
+3. __replicateMatch_QC__
+  * __Fail__ - *Cq* difference between replicates bigger than __Cq ∆__ option
+  * __Ok__
+4. __noAmpNTC_QC__
+  * __Fail__ - any __NTC__ sample has positive amplification
+  * __Ok__
+5. __ctrlMarker_QC__
+  * __Fail__ - control marker does not have positive amplification in any well 
+  * __Ok__
+  

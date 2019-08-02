@@ -76,6 +76,12 @@ ui <- fluidPage(
                  actionButton("recalculate", "Calculate Results")
         )
       ),
+      conditionalPanel(
+        condition = "output.enableReportBtn",
+        tags$div(title = "Press button to generate report",
+                 actionButton("genReport", "Report")
+        )
+      ),
       width = 2
     ),
     
