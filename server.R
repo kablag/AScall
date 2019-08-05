@@ -632,16 +632,26 @@ shinyServer(function(input, output, session) {
               axis.text.x = element_text(angle = 45, hjust = 1),
               axis.title.x = element_blank())
       
-      print(p)
-      insertPlot(
+      tfile <- tempfile(fileext = ".png")
+      ggsave(tfile, p,
+             device = "png",
+             width = 15,
+             height = 12,
+             units = "in")
+      insertImage(
         wb = my_workbook,
         sheet = "Results",
-        xy = c(1, nrow(resultTbl) + 3),
+        file = tfile,
         width = 15,
-        height = 12
+        height = 12,
+        startRow = nrow(resultTbl) + 3,
+        startCol = 1,
       )
+      # 
+      # dev.off()
       
       saveWorkbook(my_workbook, file)
+      unlink(tfile)
       # 
       # # Set up parameters to pass to Rmd document
       # params <- list(calcResults = calcResults())
