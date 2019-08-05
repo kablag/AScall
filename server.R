@@ -3,6 +3,7 @@ library(tidyverse)
 library(plotly)
 library(doParallel)
 library(RColorBrewer)
+library(openxlsx)
 
 source("generics.R")
 
@@ -493,6 +494,7 @@ shinyServer(function(input, output, session) {
                     spread(marker, result))
   })
   
+  
   output$genotypesFreqPlot <- renderPlot({
     req(calcResults())
     toLog("Creating genotypesFreqPlot")
@@ -519,37 +521,37 @@ shinyServer(function(input, output, session) {
             axis.title.x = element_blank())
   })
   
-  output$allelicDescrPlot <- renderPlotly({
-    req(calcResults())
-    toLog("Creating allelicDescrPlot")
-    tempTbl <- calcResults()$dTbl %>%
-      filter(kit %in% input$showKits &
-               marker %in% input$showMarkers &
-               sample %in% input$showSamples &
-               marker != input$ctrlMarker &
-               sample.type == "unkn") %>% 
-      dplyr::select(marker, allele, sample, result, meanCq_f) %>%
-      group_by(marker) %>% 
-      mutate(alleleN = allele %>% as.factor() %>% as.numeric()) %>% 
-      distinct() %>% 
-      filter(marker != "B2m") %>% 
-      unite("sample_marker_result",sample, marker, result) %>%
-      dplyr::select(-allele) %>% 
-      spread(key = alleleN, value = meanCq_f)
-    colnames(tempTbl)[c(2,3)] <- c("Allele_1", "Allele_2")
-    # rtbl3 <<- tempTbl
-    # ggplot(tempTbl) +
-    # geom_point(aes(x = Allele_1, y = Allele_2))
-    plot_ly() %>%
-      add_trace(data = tempTbl,
-                x = ~Allele_1, y = ~Allele_2,
-                split = ~sample_marker_result,
-                text = ~sample_marker_result,
-                hoverinfo = 'text',
-                marker = list(color = 'blue')
-      ) %>% 
-      plotly::layout(showlegend = FALSE)
-  })
+  # output$allelicDescrPlot <- renderPlotly({
+  #   req(calcResults())
+  #   toLog("Creating allelicDescrPlot")
+  #   tempTbl <- calcResults()$dTbl %>%
+  #     filter(kit %in% input$showKits &
+  #              marker %in% input$showMarkers &
+  #              sample %in% input$showSamples &
+  #              marker != input$ctrlMarker &
+  #              sample.type == "unkn") %>% 
+  #     dplyr::select(marker, allele, sample, result, meanCq_f) %>%
+  #     group_by(marker) %>% 
+  #     mutate(alleleN = allele %>% as.factor() %>% as.numeric()) %>% 
+  #     distinct() %>% 
+  #     filter(marker != "B2m") %>% 
+  #     unite("sample_marker_result",sample, marker, result) %>%
+  #     dplyr::select(-allele) %>% 
+  #     spread(key = alleleN, value = meanCq_f)
+  #   colnames(tempTbl)[c(2,3)] <- c("Allele_1", "Allele_2")
+  #   # rtbl3 <<- tempTbl
+  #   # ggplot(tempTbl) +
+  #   # geom_point(aes(x = Allele_1, y = Allele_2))
+  #   plot_ly() %>%
+  #     add_trace(data = tempTbl,
+  #               x = ~Allele_1, y = ~Allele_2,
+  #               split = ~sample_marker_result,
+  #               text = ~sample_marker_result,
+  #               hoverinfo = 'text',
+  #               marker = list(color = 'blue')
+  #     ) %>% 
+  #     plotly::layout(showlegend = FALSE)
+  # })
   
   observeEvent(
     input$pcrPlate_hover,
@@ -560,6 +562,97 @@ shinyServer(function(input, output, session) {
       updateCurves(session,
                    "ampCurves",
                    highlightCurves = fdataNames)
+    }
+  )
+  
+  output$genReport <- downloadHandler(
+    filename = "report.xlsx",
+    content = function(file) {
+      my_workbook <- createWorkbook()
+      
+      resultTbl <- calcResults()$dTbl %>%
+        filter(sample.type == "unkn") %>% 
+        ungroup() %>% 
+        dplyr::select(marker, sample, result) %>% 
+        dplyr::distinct() %>% 
+        spread(marker, result)
+      
+      addWorksheet(
+        wb = my_workbook,
+        sheetName = "Results"
+      )
+      writeData(
+        my_workbook,
+        sheet = "Results",
+        resultTbl,
+        startRow = 1,
+        startCol = 1
+      )
+      
+      addWorksheet(
+        wb = my_workbook,
+        sheetName = "QC"
+      )
+      writeData(
+        my_workbook,
+        sheet = "QC",
+        calcResults()$dTbl %>%
+          filter(sample.type == "unkn") %>% 
+          ungroup() %>% 
+          mutate(total_QC = ifelse(total_QC == "", "Ok", total_QC)) %>% 
+          dplyr::select(marker, sample, total_QC) %>% 
+          dplyr::distinct() %>% 
+          group_by(marker, sample) %>% 
+          mutate(total_QC = paste(total_QC, collapse = "/")) %>% 
+          distinct() %>% 
+          spread(marker, total_QC),
+        startRow = 1,
+        startCol = 1
+      )
+      
+      p <- calcResults()$dTbl %>% 
+        filter(sample.type == "unkn" & #result != "" &
+                 kit %in% input$showKits &
+                 marker %in% input$showMarkers &
+                 sample %in% input$showSamples &
+                 marker != input$ctrlMarker) %>%
+        group_by(marker, sample) %>%
+        summarise(result = result[1]) %>% 
+        ggplot(aes(x = marker)) +
+        geom_bar(aes( fill = result)) +
+        geom_text(aes(label = ..count.., group = result),
+                  stat = "count", position = position_stack(0.4),
+                  color = "white") +
+        geom_text(aes(label = result, group = result),
+                  stat = "count", position = position_stack(0.6),
+                  color = "white") +
+        ylab("N genotypes") +
+        theme_bw() +
+        theme(legend.position = "none",
+              axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.title.x = element_blank())
+      
+      print(p)
+      insertPlot(
+        wb = my_workbook,
+        sheet = "Results",
+        xy = c(1, nrow(resultTbl) + 3),
+        width = 15,
+        height = 12
+      )
+      
+      saveWorkbook(my_workbook, file)
+      # 
+      # # Set up parameters to pass to Rmd document
+      # params <- list(calcResults = calcResults())
+      # 
+      # # Knit the document, passing in the `params` list, and eval it in a
+      # # child of the global environment (this isolates the code in the document
+      # # from the code in this app).
+      # rmarkdown::render(tempReport, output_file = file,
+      #                   params = params,
+      #                   envir = new.env(parent = globalenv())
+      # )
     }
   )
 })

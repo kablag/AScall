@@ -2,7 +2,7 @@
 list.of.packages <- c("chipPCR", "qpcR", "DT", "doParallel",
                       "tidyverse", "plotly", "RColorBrewer",
                       "shiny", "RDML", "shinyMolBio",
-                      "shinyWidgets")
+                      "shinyWidgets", "openxlsx")
 
 #checking missing packages from list
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -79,7 +79,7 @@ ui <- fluidPage(
       conditionalPanel(
         condition = "output.enableReportBtn",
         tags$div(title = "Press button to generate report",
-                 actionButton("genReport", "Report")
+                 downloadButton("genReport", "Report")
         )
       ),
       width = 2
