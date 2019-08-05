@@ -214,7 +214,17 @@ shinyServer(function(input, output, session) {
                        if (length(okAlleles) == 1) {
                          okAlleles <- c(okAlleles, okAlleles)
                        }
-                       paste(okAlleles, collapse = "")
+                       paste(okAlleles, collapse = "/")
+                     }
+                     
+                     genIndelResult <- function(ampStatus_QC) {
+                       if (all(ampStatus_QC == "Ok")) {
+                         "Ins"
+                       } else if (all(ampStatus_QC != "Ok")) {
+                         "Del"
+                       } else {
+                         "Error"
+                       }
                      }
                      
                      tmpTbl <- dTbl %>%
@@ -223,16 +233,34 @@ shinyServer(function(input, output, session) {
                               ctrlMarker_QC == "Ok") %>%
                        group_by(kit, marker, sample) %>%
                        mutate(
-                         result = genResult(allele[ampStatus_QC == "Ok"]),
+                         result = {
+                           if (marker[1] != input$ctrlMarker) {
+                             if (allele[1] == "+") {
+                               genIndelResult(ampStatus_QC)
+                             } else {
+                               genResult(allele[ampStatus_QC == "Ok"])
+                             }
+                           } else {
+                             ""
+                           }
+                         },
                          resultZygosity =
                            sapply(result,
-                                  function(x) switch(
-                                    as.character(str_length(x)),
-                                    "0" = "",
-                                    "1" = "Homo",
-                                    "2" = "Hetero",
-                                    "Error")
-                                  )
+                                  function(x) 
+                                  {
+                                    if (x[1] == "")
+                                      ""
+                                    else
+                                      switch(
+                                        as.character(str_split(x,
+                                                               "/")[[1]] %>%
+                                                       unique() %>% 
+                                                       length()),
+                                        "1" = "Homo",
+                                        "2" = "Hetero",
+                                        "Error")
+                                  }
+                           )
                        )
                      dTbl <- left_join(dTbl, tmpTbl)
                      dTbl$result[dTbl$result == ""] <- NA
@@ -420,10 +448,11 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(
-    c(input$pcrPlate, input$showMarkers, input$showSamples),
+    c(input$pcrPlate, input$showMarkers, input$showSamples),#, input$showFile),
     {
       req(calcResults())
       toLog("Updating curves")
+      # print(input$showMarkers)
       toHideCurves <-
         preDetailsTbl() %>% 
         filter(!(position %in% input$pcrPlate) |
@@ -647,8 +676,6 @@ shinyServer(function(input, output, session) {
         startRow = nrow(resultTbl) + 3,
         startCol = 1,
       )
-      # 
-      # dev.off()
       
       saveWorkbook(my_workbook, file)
       unlink(tfile)
