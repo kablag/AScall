@@ -448,7 +448,7 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(
-    c(input$pcrPlate, input$showMarkers, input$showSamples),#, input$showFile),
+    c(input$pcrPlate, input$showMarkers, input$showSamples, input$showFile),
     {
       req(calcResults())
       toLog("Updating curves")
@@ -600,7 +600,8 @@ shinyServer(function(input, output, session) {
       my_workbook <- createWorkbook()
       
       resultTbl <- calcResults()$dTbl %>%
-        filter(sample.type == "unkn") %>% 
+        filter(sample.type == "unkn" &
+                 marker != input$ctrlMarker) %>% 
         ungroup() %>% 
         dplyr::select(marker, sample, result) %>% 
         dplyr::distinct() %>% 
@@ -626,7 +627,8 @@ shinyServer(function(input, output, session) {
         my_workbook,
         sheet = "QC",
         calcResults()$dTbl %>%
-          filter(sample.type == "unkn") %>% 
+          filter(sample.type == "unkn" &
+                   marker != input$ctrlMarker) %>% 
           ungroup() %>% 
           mutate(total_QC = ifelse(total_QC == "", "Ok", total_QC)) %>% 
           dplyr::select(marker, sample, total_QC) %>% 
