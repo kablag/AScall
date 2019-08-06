@@ -60,7 +60,9 @@ Same rule for replicates - there should not be any indices!
 * Target names for not control genes have to contain **gene name** and **allele name** 
 after **underscore** - GENENAME_ALLELENAME pattern. Green box on the figure - 
 **HER2_C** **and HER2_G** where **HER2** is the gene name and **C** or **G** are
-alleles.
+alleles. For indel targets use **+** sign (e.g. **UGT2b17_+**). Using indel 
+targets leads to alternate analysis: no amplification is deletion; amplification
+is insertion.
 * Control gene name have to be equal for all plates. Blue box **B2m**.
 * No template controls must have **NTC** sample type.
 * Target name without allele name called **marker**.
@@ -171,18 +173,57 @@ kit_QC =
 ```
 * Results Calc - calculates for all sample which are 
 `kit_QC == "Ok" & replicateMatch_QC == "Ok" & ctrlMarker_QC == "Ok"`.
-Then result is a combination of alleles with `ampStatus_QC == "Ok"`.
+Then result is a combination of alleles with `ampStatus_QC == "Ok"` or
+insertion/deletion if `ampStatus_QC == "Ok"`/`ampStatus_QC != "Ok"` for
+indel markers.
+
 ```r
-result = genResult(allele[ampStatus_QC == "Ok"])
-resultZygosity = sapply(result,
-                       function(x) switch(
-                         as.character(str_length(x)),
-                         "0" = "",
-                         "1" = "Homo",
-                         "2" = "Hetero",
-                         "Error")
-                       )
+genResult <- function(okAlleles) {
+                       okAlleles <-  unique(okAlleles)
+                       if (length(okAlleles) == 1) {
+                         okAlleles <- c(okAlleles, okAlleles)
+                       }
+                       paste(okAlleles, collapse = "/")
+                     }
+                     
+genIndelResult <- function(ampStatus_QC) {
+        if (all(ampStatus_QC == "Ok")) {
+          "Ins"
+        } else if (all(ampStatus_QC != "Ok")) {
+          "Del"
+        } else {
+          "Error"
+        }
+      }
+result = {
+       if (marker[1] != input$ctrlMarker) {
+         if (allele[1] == "+") {
+           genIndelResult(ampStatus_QC)
+         } else {
+           genResult(allele[ampStatus_QC == "Ok"])
+         }
+       } else {
+         ""
+       }
+     }
+resultZygosity =
+  sapply(result,
+         function(x) 
+         {
+           if (x[1] == "")
+             ""
+           else
+             switch(
+               as.character(str_split(x,
+                                      "/")[[1]] %>%
+                              unique() %>% 
+                              length()),
+               "1" = "Homo",
+               "2" = "Hetero",
+               "Error")
+         })
 ```
+
 ## Visualization
 There are three main elements:
 
