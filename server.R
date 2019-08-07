@@ -24,20 +24,38 @@ shinyServer(function(input, output, session) {
   })
   
   calcResults <- reactiveVal()
+  fNames <- reactiveVal()
+  
+  observeEvent(
+    input$loadExmpl,
+    {
+      fNames(list(
+          name = "01.rdml",
+          datapath = "examples/01.rdml"
+      ))
+    }
+  )
+  observeEvent(
+    input$inputFile,
+    {
+      fNames(input$inputFile)
+    }
+  )
+  
   
   rdmls <- reactive({
-    req(input$inputFile)
+    req(fNames())
     toLog(str_pad("Loading Files",
                   40, "both", pad = c("-")))
     withProgress(message = "Loading file", value = 0, {
-      rdmls <- lapply(seq_along(input$inputFile$datapath),
+      rdmls <- lapply(seq_along(fNames()$datapath),
                       function(i) {
-                        msg <- paste("Loading File:", input$inputFile$name[i])
+                        msg <- paste("Loading File:", fNames()$name[i])
                         toLog(msg)
                         incProgress(0,
                                     msg)
-                        rdml <- RDML$new(input$inputFile$datapath[i])
-                        incProgress(1/length(input$inputFile$datapath))
+                        rdml <- RDML$new(fNames()$datapath[i])
+                        incProgress(1/length(fNames()$datapath))
                         rdml
                       })
       # rdmls <- foreach(dpath = input$inputFile$datapath) %dopar% {
@@ -46,7 +64,7 @@ shinyServer(function(input, output, session) {
       #   RDML$new(dpath)
       # }
     })
-    names(rdmls) <- input$inputFile$name
+    names(rdmls) <- fNames()$name
     rdmls
   })
   

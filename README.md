@@ -42,7 +42,8 @@ Process of analysis can be described by several major steps:
 Sample files are available in
 [examples folder](https://github.com/kablag/AScall/tree/master/examples) of *AScall*.
 These files are BioRad CFX *pcrd* format and *rdml* converted. Also there is
-manual genotyping results file - *genotyping.xlsx*.
+manual genotyping results file - *genotyping.xlsx*. Click button *Use Sample File*
+to load `01.rdml` file.
 
 ## Data import
 
@@ -302,4 +303,3 @@ Report generation is carried out by *openxlsx* package.
 5. __ctrlMarker_QC__
   * __Fail__ - control marker does not have positive amplification in any well 
   * __Ok__
-  

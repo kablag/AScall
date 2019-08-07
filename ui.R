@@ -30,6 +30,8 @@ ui <- fluidPage(
                 "Upload .rdml, .csv, .lc96p, .xls or .xlsx file(s):",
                 accept = c(".rdml", ".csv", ".lc96p", ".xls", ".xlsx"),
                 multiple = TRUE),
+      actionButton("loadExmpl", "Use Sample File"),
+      tags$p(),
       wellPanel(
         tags$div(title = "Background subtraction and Cq calculation (second derivative maximum) will be applied to the curves if checked",
                  checkboxInput("preprocessCheck", "Preprocess Curves", FALSE)
