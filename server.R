@@ -5,6 +5,7 @@ library(tidyverse)
 library(plotly)
 library(doParallel)
 library(RColorBrewer)
+library(shinyWidgets)
 library(openxlsx)
 
 source("generics.R")
