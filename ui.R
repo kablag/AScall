@@ -97,7 +97,9 @@ ui <- fluidPage(
                  fluidRow(
                    column(6, uiOutput("ampCurvesUI")),
                    column(6, uiOutput("pcrPlateUI"))),
-                 DT::dataTableOutput("detailsTbl"))
+                 DT::dataTableOutput("detailsTbl")),
+        tabPanel("User Manual",
+                 includeMarkdown("README.md"))
       )
     )
   )
