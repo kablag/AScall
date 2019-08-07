@@ -12,18 +12,3 @@ if (length(new.packages)) {
   cat(sprintf("Installing missing packages: %s\n", paste(new.packages, collapse = ", ")))
   install.packages(new.packages, dependencies = TRUE)
 }
-
-library(RDML)
-library(tidyverse)
-library(plotly)
-library(doParallel)
-library(RColorBrewer)
-library(openxlsx)
-
-library(shiny)
-library(shinyMolBio)
-library(shinyWidgets)
-
-nCores <- detectCores()
-cl <- makeCluster(nCores)
-registerDoParallel(cl)
