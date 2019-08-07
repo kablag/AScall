@@ -1,15 +1,5 @@
-library(RDML)
-library(tidyverse)
-library(plotly)
-library(doParallel)
-library(RColorBrewer)
-library(openxlsx)
-
+source("init.R")
 source("generics.R")
-
-nCores <- detectCores()
-cl <- makeCluster(nCores)
-registerDoParallel(cl)
 
 onStop(function() {
   toLog("Doing application cleanup")

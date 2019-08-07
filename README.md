@@ -24,8 +24,8 @@ applied by clicking **Recalculate Results** button.
 
 ### Installation
 
-Copy all files (or generics.R, server.R, ui.R for minimal installation) to any
-directory on your computer and 
+Copy all files (or *init.R*, *generics.R*, *server.R* and *ui.R* for minimal 
+installation) to any directory on your computer and 
 [run](https://shiny.rstudio.com/articles/running.html) as usual *shiny*
 application. All necessary packages will be installed during application run.
 
