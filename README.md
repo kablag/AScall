@@ -86,9 +86,9 @@ menu (see fig.2).
 
 ## PCR curves preprocessing
 This is optional step and only needed when your use RAW data or want to recalculate 
-**Cq** values with the independent method (second derivative maximum in this case).
+**Cq** values with the independent method (fitting and Cq calculation).
 Preprocessing is conducted with the *chipPCR* and *qpcR* packages usage. You 
-should check **Preprocess Curves** (Fig.3).
+should check **Preprocess Curves** to enable preprocessing and options (Fig.3).
 
 ![Figure 3. AScall options](ext/options.png)
 
@@ -104,16 +104,16 @@ chipPCR::CPP(fpoints$cyc, fpoints$fluor,
              trans = TRUE,
              bg.range = bgRange)$y.norm
 ```
-* Model **l5** fitting
+* Model fitting
 ```r
 qpcR::pcrfit(fpoints[, c("cyc", "fluor")], 
        cyc = 1, fluo = 2,
-       model = l5)
+       model = get(modelType))
 ```
 * Cq calculation
 ```r
 qpcR::efficiency(fitted, plot = FALSE,
-           type = "cpD2")$cpD2
+           type = cqMethod)
 ```
 
 ## Genotype calling
