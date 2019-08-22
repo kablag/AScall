@@ -41,6 +41,23 @@ ui <- fluidPage(
           tags$div(title = "Cycle range for background subtraction (linear part of the curves before exponentional growth)",
                    sliderInput("bgRange", "Background Range",
                                1, 40, c(5, 15), 1)
+          ),
+          tags$div(title = "Model type for PCR curve fitting",
+                   selectInput("modelType", "Model Type",
+                               c("l4", "l5", "l6", "l7", "b4", "b5", "b6", "b7"),
+                               "l5")
+          ),
+          tags$div(title = "Cq calculation method",
+                   selectInput("cqMethod", "Cq Method",
+                               c("cpD2", "cpD1", "maxE", "expR", "CQ", "Cy0",
+                                 "Threshold"),
+                               "cpD2")
+          ), 
+          conditionalPanel(
+            "input.cqMethod == 'Threshold'",
+            tags$div(title = "Threshold value for Cq calculation",
+                     numericInput("thrCq", "Threshold", 100)
+            )
           )
         )
       ),

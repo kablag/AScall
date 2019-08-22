@@ -67,6 +67,9 @@ shinyServer(function(input, output, session) {
       # }
     })
     names(rdmls) <- fNames()$name
+    for (fname in names(rdmls)) {
+      rdmls[[fname]]$experiment[[1]]$run[[1]]$Init()
+    }
     rdmls
   })
   
@@ -100,18 +103,33 @@ shinyServer(function(input, output, session) {
   observeEvent(input$recalculate,
                {
                  req(rdmls())
-                 
+                 toLog(str_pad("Preprocessing curves",
+                               40, "both", pad = c("-")))
+                 withProgress(message = 'Init Curves', value = 0, {
+                   for (fname in names(rdmls())) {
+                     toLog(paste("File", fname))
+                     rdmls()[[fname]]$experiment[[1]]$run[[1]]$Init()
+                     incProgress(1/length(rdmls()))
+                   }
+                 })
                  if (input$preprocessCheck &&
                      (is.null(calcResults()) || 
                       # don't preprocess without necessity 
-                      (any(calcResults()$calcParams$bgRange != input$bgRange)))
+                      (any(calcResults()$calcParams$bgRange != input$bgRange)) ||
+                      calcResults()$calcParams$modelType != input$modelType ||
+                      calcResults()$calcParams$cqMethod != input$cqMethod ||
+                      calcResults()$calcParams$thrCq != input$thrCq)
                  ) {
                    toLog(str_pad("Preprocessing curves",
                                  40, "both", pad = c("-")))
                    withProgress(message = 'Preprocessing Curves', value = 0, {
                      for (fname in names(rdmls())) {
                        toLog(paste("File", fname))
-                       rdmls()[[fname]]$experiment[[1]]$run[[1]]$Preprocess(input$bgRange)
+                       rdmls()[[fname]]$experiment[[1]]$run[[1]]$
+                         Preprocess(input$bgRange,
+                                    input$modelType,
+                                    input$cqMethod,
+                                    input$thrCq)
                        incProgress(1/length(rdmls()))
                      }
                      # for (react in rdmls()$experiment[[1]]$run[[1]]$react) {
@@ -327,6 +345,9 @@ shinyServer(function(input, output, session) {
                    calcParams = list(
                      preprocessCheck = input$preprocessCheck,
                      bgRange = input$bgRange,
+                     modelType = input$modelType,
+                     cqMethod = input$cqMethod,
+                     thrCq = input$thrCq,
                      ctrlMarker = input$ctrlMarker,
                      cqDelta = input$cqDelta,
                      cqThr = input$cqThr,
@@ -465,6 +486,7 @@ shinyServer(function(input, output, session) {
       renderAmpCurves("ampCurves", 
                       ampCurves = calcResults()$fData[[input$showFile]],
                       colorBy = "marker",
+                      showCq = TRUE,
                       interactive = TRUE)
     })
   })
