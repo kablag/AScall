@@ -8,11 +8,13 @@ library(RColorBrewer)
 library(shinyMolBio)
 library(shinyWidgets)
 library(openxlsx)
+library(qpcR)
 
 source("generics.R")
 
 nCores <- detectCores()
 cl <- makeCluster(nCores)
+clusterExport(cl, c("pcrfit", "efficiency", "l4", "l5", "l6", "l7", "b4", "b5", "b6", "b7"))
 registerDoParallel(cl)
 
 onStop(function() {

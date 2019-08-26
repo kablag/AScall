@@ -38,7 +38,7 @@ dataType$set("public", "Init",
 dataType$set("public", "Preprocess", 
              function(bgRange, modelType, cqMethod, thrCq) {
                # library(chipPCR)
-               library(qpcR)
+               # library(qpcR)
                fpoints <- self$adp$fpoints
                fpoints$fluor <- 
                  chipPCR::CPP(fpoints$cyc, fpoints$fluor,
@@ -100,7 +100,7 @@ runType$set("public", "Preprocess",
             overwrite = TRUE)
 
 runType$set("public", "Init",
-            function(bgRange, modelType, cqMethod, thrCq) {
+            function() {
               self$react <- foreach(reactN = self$react) %dopar% {
                 for (dat in reactN$data)
                   dat$Init()
@@ -108,4 +108,3 @@ runType$set("public", "Init",
               } 
             },
             overwrite = TRUE)
-
