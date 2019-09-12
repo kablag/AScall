@@ -69,9 +69,9 @@ shinyServer(function(input, output, session) {
       # }
     })
     names(rdmls) <- fNames()$name
-    for (fname in names(rdmls)) {
-      rdmls[[fname]]$experiment[[1]]$run[[1]]$Init()
-    }
+    # for (fname in names(rdmls)) {
+    #   rdmls[[fname]]$experiment[[1]]$run[[1]]$Init()
+    # }
     rdmls
   })
   
@@ -107,13 +107,13 @@ shinyServer(function(input, output, session) {
                  req(rdmls())
                  toLog(str_pad("Preprocessing curves",
                                40, "both", pad = c("-")))
-                 withProgress(message = 'Init Curves', value = 0, {
-                   for (fname in names(rdmls())) {
-                     toLog(paste("File", fname))
-                     rdmls()[[fname]]$experiment[[1]]$run[[1]]$Init()
-                     incProgress(1/length(rdmls()))
-                   }
-                 })
+                 # withProgress(message = 'Init Curves', value = 0, {
+                 #   for (fname in names(rdmls())) {
+                 #     toLog(paste("File", fname))
+                 #     rdmls()[[fname]]$experiment[[1]]$run[[1]]$Init()
+                 #     incProgress(1/length(rdmls()))
+                 #   }
+                 # })
                  if (input$preprocessCheck &&
                      (is.null(calcResults()) || 
                       # don't preprocess without necessity 

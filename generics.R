@@ -26,10 +26,10 @@ dataType$set("public", "Init",
              function() {
                if (!is.environment(self$rawAdp)) {
                  # first preprocess init
-                 self$rawAdp <- self$adp$copy()
+                 self$rawAdp <- self$adp #self$adp$copy() undo is turned off
                  self$rawCq <- self$cq
                } else {
-                 self$adp <- self$rawAdp$copy()
+                 self$adp <- self$rawAdp #self$rawAdp$copy() undo is turned off
                  self$cq <- self$rawCq
                }
              },
