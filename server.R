@@ -13,7 +13,7 @@ library(qpcR)
 source("generics.R")
 
 nCores <- detectCores()
-cl <- makeCluster(nCores)
+cl <- makeForkCluster(nCores)
 clusterExport(cl, c("pcrfit", "efficiency", "l4", "l5", "l6", "l7", "b4", "b5", "b6", "b7"))
 registerDoParallel(cl)
 
@@ -51,20 +51,24 @@ shinyServer(function(input, output, session) {
     req(fNames())
     toLog(str_pad("Loading Files",
                   40, "both", pad = c("-")))
-    withProgress(message = "Loading file", value = 0, {
-      rdmls <- lapply(seq_along(fNames()$datapath),
+    withProgress(message = "Loading file(s)", value = 0, {
+      fname <- fNames()$name
+      datapath <- fNames()$datapath
+      rdmls <-
+        # parLapply(cl, seq_along(datapath),
+        lapply(seq_along(datapath),
                       function(i) {
-                        msg <- paste("Loading File:", fNames()$name[i])
+                        msg <- paste("Loading File:", fname[i])
                         toLog(msg)
                         incProgress(0,
                                     msg)
-                        rdml <- RDML$new(fNames()$datapath[i])
+                        rdml <- RDML$new(datapath[i], show.progress = FALSE)
                         incProgress(1/length(fNames()$datapath))
                         rdml
                       })
       # rdmls <- foreach(dpath = input$inputFile$datapath) %dopar% {
-      #   library(RDML)
-      #   source("generics.R")
+      #   # library(RDML)
+      #   # source("generics.R")
       #   RDML$new(dpath)
       # }
     })
@@ -207,6 +211,13 @@ shinyServer(function(input, output, session) {
                            else "Fail"
                          })
                      
+                     # Alleles delta check ---------------------------------------------------
+                     toLog("Alleles delta check")
+                     # Cq delta between alleles.
+                     dTbl <- dTbl %>%
+                       group_by(kit, marker, sample) %>% 
+                       mutate(allelesDelta_QC = ifelse((meanCq - min(meanCq)) < input$cqDelta,
+                                                       "Ok", "Fail"))
                      
                      # Kit NTC noAmp -----------------------------------------------------------
                      toLog("Kit NTC noAmp")
@@ -252,7 +263,7 @@ shinyServer(function(input, output, session) {
                      # Results Calc ------------------------------------------------------------
                      toLog("Results Calc")
                      genResult <- function(okAlleles) {
-                       okAlleles <-  unique(okAlleles)
+                       okAlleles <-  sort(unique(okAlleles))
                        if (length(okAlleles) == 1) {
                          okAlleles <- c(okAlleles, okAlleles)
                        }
@@ -280,7 +291,8 @@ shinyServer(function(input, output, session) {
                              if (allele[1] == "+") {
                                genIndelResult(ampStatus_QC)
                              } else {
-                               genResult(allele[ampStatus_QC == "Ok"])
+                               genResult(allele[ampStatus_QC == "Ok" &
+                                                  allelesDelta_QC == "Ok"])
                              }
                            } else {
                              ""
@@ -342,7 +354,8 @@ shinyServer(function(input, output, session) {
                        result = ifelse(is.na(result), 
                                        "!NA!", 
                                        result)
-                     ),
+                     ) %>% 
+                     arrange(sample, marker),
                    fData = globalFluoData,
                    calcParams = list(
                      preprocessCheck = input$preprocessCheck,
@@ -689,9 +702,9 @@ shinyServer(function(input, output, session) {
       
       p <- calcResults()$dTbl %>% 
         filter(sample.type == "unkn" & #result != "" &
-                 kit %in% input$showKits &
-                 marker %in% input$showMarkers &
-                 sample %in% input$showSamples &
+                 # kit %in% input$showKits &
+                 # marker %in% input$showMarkers &
+                 # sample %in% input$showSamples &
                  marker != input$ctrlMarker) %>%
         group_by(marker, sample) %>%
         summarise(result = result[1]) %>% 
