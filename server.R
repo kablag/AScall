@@ -210,13 +210,23 @@ shinyServer(function(input, output, session) {
                            ) "Ok"
                            else "Fail"
                          })
+                     dTbl <- dTbl %>% 
+                       group_by(position) %>% 
+                       mutate(
+                         ctrlMarkerCq = cq[marker == input$ctrlMarker]
+                       )
+                     
                      
                      # Alleles delta check ---------------------------------------------------
                      toLog("Alleles delta check")
-                     # Cq delta between alleles.
+                     # Cq delta between alleles (and minus delta between ctrlMarkerCqs to normalize samples).
                      dTbl <- dTbl %>%
                        group_by(kit, marker, sample) %>% 
-                       mutate(allelesDelta_QC = ifelse((meanCq - min(meanCq)) < input$cqDelta,
+                       mutate(
+                         allelesDeltaCqUnnorm = meanCq - min(meanCq),
+                         allelesDeltaCq =  allelesDeltaCqUnnorm - 
+                           (ctrlMarkerCq - min(ctrlMarkerCq)),
+                              allelesDeltaCq_QC = ifelse(allelesDeltaCq < input$cqDelta,
                                                        "Ok", "Fail"))
                      
                      # Kit NTC noAmp -----------------------------------------------------------
@@ -292,7 +302,7 @@ shinyServer(function(input, output, session) {
                                genIndelResult(ampStatus_QC)
                              } else {
                                genResult(allele[ampStatus_QC == "Ok" &
-                                                  allelesDelta_QC == "Ok"])
+                                                  allelesDeltaCq_QC == "Ok"])
                              }
                            } else {
                              ""
@@ -351,6 +361,7 @@ shinyServer(function(input, output, session) {
                        cq_f = round(cq, digits = 2),
                        meanCq_f = round(meanCq, digits = 2),
                        deltaCq_f = round(deltaCq, digits = 2),
+                       allelesDeltaCq_f = round(allelesDeltaCq, digits = 2),
                        result = ifelse(is.na(result), 
                                        "!NA!", 
                                        result)
@@ -469,6 +480,7 @@ shinyServer(function(input, output, session) {
                                      cq_f,
                                      meanCq_f,
                                      deltaCq_f,
+                                     allelesDeltaCq_f,
                                      total_QC,
                                      result) %>% 
                           apply(1, function(x) sprintf("Marker %s Allele %s:\nCq = %s, Mean Cq = %s, ∆ Cq = %s, Errors = {%s}",
@@ -549,7 +561,8 @@ shinyServer(function(input, output, session) {
                  sample %in% input$showSamples) %>% 
         ungroup() %>% 
         dplyr::select(fdata.name, position, marker, kit, sample, sample.type,
-                      Cq = cq_f, Mean_Cq = meanCq_f, Delta_Cq = deltaCq_f,
+                      Cq = cq_f, Mean_Cq = meanCq_f, D_Cq = deltaCq_f,
+                      AllelesD_Cq = allelesDeltaCq_f,
                       result, Zygosity = resultZygosity,
                       kit_QC, total_QC),
       rownames = FALSE,
