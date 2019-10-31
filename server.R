@@ -226,7 +226,7 @@ shinyServer(function(input, output, session) {
                          allelesDeltaCqUnnorm = meanCq - min(meanCq),
                          allelesDeltaCq =  allelesDeltaCqUnnorm - 
                            (ctrlMarkerCq - min(ctrlMarkerCq)),
-                              allelesDeltaCq_QC = ifelse(allelesDeltaCq < input$cqDelta,
+                              allelesDeltaCq_QC = ifelse(abs(allelesDeltaCq) < input$cqDelta,
                                                        "Ok", "Fail"))
                      
                      # Kit NTC noAmp -----------------------------------------------------------
