@@ -99,18 +99,21 @@ for all curves using this slider (Click **Recalculate Results** to apply changes
 Processing consists of the following three steps:
 
 * Background subtraction
+
 ```r
 chipPCR::CPP(fpoints$cyc, fpoints$fluor,
              trans = TRUE,
              bg.range = bgRange)$y.norm
 ```
 * Model fitting
+
 ```r
 qpcR::pcrfit(fpoints[, c("cyc", "fluor")], 
        cyc = 1, fluo = 2,
        model = get(modelType))
 ```
 * Cq calculation
+
 ```r
 qpcR::efficiency(fitted, plot = FALSE,
            type = cqMethod)
@@ -133,18 +136,21 @@ positive.
 
 * Low RFU - all reactions with **RFU** lower than **RFU Threshold** are marked with 
 `RFU_QC = "Low"` 
+
 ```r
 RFU_QC = ifelse(endPt < input$rfuThr, 
                 "Low", "Ok"))
 ```
 * Mark amplification status - negative for reactions with `RFU_QC != "Ok"` and
 **Cq** higher than **Cq Threshold**
+
 ```r
 ampStatus_QC = ifelse(RFU_QC != "Ok" | cq > input$cqThr, 
                      "NoAmp", "Ok")
 ```
 * Replicate match check - all replicates have to be `ampStatus_QC = "NoAmp"` or 
 (`ampStatus_QC = "Ok"` and difference between **Cq** values lower than **Cq ∆** option)
+
 ```r
 meanCq = mean(cq),
 deltaCq = max(cq) - min(cq)
@@ -154,6 +160,7 @@ replicateMatch_QC = {
 ```
 * ∆ between alleles - alleles **Cq** difference (and minus delta between 
 ctrlMarkerCqs to normalize samples) have to be lower than **Cq ∆** option.
+
 ```r
 dTbl <- dTbl %>% 
         group_by(position) %>% 
@@ -172,6 +179,7 @@ dTbl <- dTbl %>%
 ```
 * NTC no amplification - all NTC reactions in kit have to be 
 `ampStatus_QC = "NoAmp"`
+
 ```r
 noAmpNTC_QC = 
   {
@@ -181,6 +189,7 @@ noAmpNTC_QC =
 ```                   
 * Control Marker QC - `ampStatus_QC = "Ok"` and `replicateMatch_QC = "Ok"` for 
 **Control Marker** reactions
+
 ```r
 ctrlMarker_QC = 
   {
@@ -190,6 +199,7 @@ ctrlMarker_QC =
   }
 ```
 * Kit total QC - `noAmpNTC_QC != "Ok"` for all NTC 
+
 ```r
 kit_QC = 
   {
