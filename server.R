@@ -210,24 +210,24 @@ shinyServer(function(input, output, session) {
                            ) "Ok"
                            else "Fail"
                          })
+                     
+                     # Alleles delta check ---------------------------------------------------
+                     toLog("Alleles delta check")
+                     # Cq delta between alleles (and minus delta between ctrlMarkerCqs to normalize samples).
                      dTbl <- dTbl %>% 
                        group_by(position) %>% 
                        mutate(
                          ctrlMarkerCq = cq[marker == input$ctrlMarker]
                        )
-                     
-                     
-                     # Alleles delta check ---------------------------------------------------
-                     toLog("Alleles delta check")
-                     # Cq delta between alleles (and minus delta between ctrlMarkerCqs to normalize samples).
                      dTbl <- dTbl %>%
                        group_by(kit, marker, sample) %>% 
                        mutate(
                          allelesDeltaCqUnnorm = meanCq - min(meanCq),
                          allelesDeltaCq =  allelesDeltaCqUnnorm - 
                            (ctrlMarkerCq - min(ctrlMarkerCq)),
-                              allelesDeltaCq_QC = ifelse(abs(allelesDeltaCq) < input$cqDelta,
-                                                       "Ok", "Fail"))
+                         allelesDeltaCq_QC = 
+                           ifelse(abs(allelesDeltaCq) < input$cqDelta,
+                                  "Ok", "Fail"))
                      
                      # Kit NTC noAmp -----------------------------------------------------------
                      toLog("Kit NTC noAmp")

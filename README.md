@@ -152,6 +152,24 @@ replicateMatch_QC = {
     if ((all(ampStatus_QC == "Ok") && deltaCq[1] < input$cqDelta) ||
         all(ampStatus_QC != "Ok")) "Ok" else "Fail"
 ```
+* ∆ between alleles - alleles **Cq** difference (and minus delta between 
+ctrlMarkerCqs to normalize samples) have to be lower than **Cq ∆** option.
+```r
+dTbl <- dTbl %>% 
+        group_by(position) %>% 
+        mutate(
+          ctrlMarkerCq = cq[marker == input$ctrlMarker]
+        )
+      dTbl <- dTbl %>%
+        group_by(kit, marker, sample) %>% 
+        mutate(
+          allelesDeltaCqUnnorm = meanCq - min(meanCq),
+          allelesDeltaCq =  allelesDeltaCqUnnorm - 
+            (ctrlMarkerCq - min(ctrlMarkerCq)),
+          allelesDeltaCq_QC = 
+            ifelse(abs(allelesDeltaCq) < input$cqDelta,
+                   "Ok", "Fail"))
+```
 * NTC no amplification - all NTC reactions in kit have to be 
 `ampStatus_QC = "NoAmp"`
 ```r
@@ -295,7 +313,10 @@ Report generation is carried out by *openxlsx* package.
   * __NoAmp__ - anmlification for this curve is not detected
   * __Ok__
 3. __replicateMatch_QC__
-  * __Fail__ - *Cq* difference between replicates bigger than __Cq ∆__ option
+  * __Fail__ - *Cq* difference between replicates is bigger than __Cq ∆__ option
+  * __Ok__
+4. __allelesDeltaCq_QC__
+  * __Fail__ - *Cq* difference between alleles of one marker is bigger than __Cq ∆__ option
   * __Ok__
 4. __noAmpNTC_QC__
   * __Fail__ - any __NTC__ sample has positive amplification
