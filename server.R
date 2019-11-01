@@ -183,16 +183,26 @@ shinyServer(function(input, output, session) {
                        mutate(RFU_QC = ifelse(endPt < input$rfuThr, 
                                               "Low", "Ok"))
                      # Set cq = maxCycle for curves with end point RFU lower than rfuThr | is.na(cq)
-                     dTbl[dTbl$RFU_QC == "Low" | is.na(dTbl$cq), "cq"] <- maxCq
+                     # dTbl[dTbl$RFU_QC == "Low" | is.na(dTbl$cq), "cq"] <- maxCq
+                     dTbl[is.na(dTbl$cq), "cq"] <- maxCq
                      
                      
                      # Mark AmpStatus --------------------------------------------------------
                      toLog("Mark AmpStatus")
                      # noAmp if: RFU_QC != OK | is higher than cqThr
                      dTbl <- dTbl %>%  
-                       mutate(ampStatus_QC = ifelse(
-                         RFU_QC != "Ok" | cq > input$cqThr , 
-                         "NoAmp", "Ok"))
+                       group_by(position, kit, marker, allele, sample) %>% 
+                       mutate(ampStatus_QC = {
+                         if (RFU_QC != "Ok" && cq > input$cqThr) {
+                           "Fail"
+                         } else { 
+                           if (RFU_QC != "Ok" || cq > input$cqThr) {
+                             "Uncertain"
+                           } else {
+                             "Ok"
+                           }
+                         }
+                       })
                      
                      # Replicate match check ---------------------------------------------------
                      toLog("Replicate match check")
@@ -203,7 +213,7 @@ shinyServer(function(input, output, session) {
                          meanCq = mean(cq),
                          deltaCq = max(cq) - min(cq),
                          replicateMatch_QC = { 
-                           if ((all(ampStatus_QC == "Ok") && deltaCq[1] < input$cqDelta) ||
+                           if ((all(ampStatus_QC != "Fail") && deltaCq[1] < input$cqDelta) ||
                                all(ampStatus_QC != "Ok") 
                                # !!!! temporary hack for control marker in positive sample !!!!
                                || (sample.type == "pos" && marker == input$ctrlMarker)
@@ -236,7 +246,7 @@ shinyServer(function(input, output, session) {
                        group_by(kit) %>% 
                        mutate(noAmpNTC_QC = 
                        {
-                         if (any(ampStatus_QC[sample.type == "ntc"] == "Ok"))
+                         if (any(ampStatus_QC[sample.type == "ntc"] != "Fail"))
                            "Fail"
                          else
                            "Ok"
@@ -251,7 +261,7 @@ shinyServer(function(input, output, session) {
                        {
                          # ampOk (and replicateMatch_QC ok )for ctrlMarker 
                          if (any(replicateMatch_QC[marker == input$ctrlMarker] != "Ok") ||
-                             any(ampStatus_QC[marker == input$ctrlMarker] == "NoAmp"))
+                             any(ampStatus_QC[marker == input$ctrlMarker] != "Ok"))
                            "Fail"
                          else
                            "Ok"
@@ -297,15 +307,19 @@ shinyServer(function(input, output, session) {
                        group_by(kit, marker, sample) %>%
                        mutate(
                          result = {
-                           if (marker[1] != input$ctrlMarker) {
-                             if (allele[1] == "+") {
-                               genIndelResult(ampStatus_QC)
-                             } else {
-                               genResult(allele[ampStatus_QC == "Ok" &
-                                                  allelesDeltaCq_QC == "Ok"])
-                             }
+                           if (any(ampStatus_QC == "Uncertain")) {
+                             "Uncertain"
                            } else {
-                             ""
+                             if (marker[1] != input$ctrlMarker) {
+                               if (allele[1] == "+") {
+                                 genIndelResult(ampStatus_QC)
+                               } else {
+                                 genResult(allele[ampStatus_QC == "Ok" &
+                                                    allelesDeltaCq_QC == "Ok"])
+                               }
+                             } else {
+                               ""
+                             }
                            }
                          },
                          resultZygosity =
