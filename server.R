@@ -189,14 +189,14 @@ shinyServer(function(input, output, session) {
                      
                      # Mark AmpStatus --------------------------------------------------------
                      toLog("Mark AmpStatus")
-                     # noAmp if: RFU_QC != OK | is higher than cqThr
+                     # noAmp if: RFU_QC != OK | is outside cqThr
                      dTbl <- dTbl %>%  
                        group_by(position, kit, marker, allele, sample) %>% 
                        mutate(ampStatus_QC = {
-                         if (RFU_QC != "Ok" && cq > input$cqThr) {
+                         if (RFU_QC != "Ok" && (cq > input$cqThr[2] || cq < input$cqThr[1])) {
                            "Fail"
                          } else { 
-                           if (RFU_QC != "Ok" || cq > input$cqThr) {
+                           if (RFU_QC != "Ok" || (cq > input$cqThr[2] || cq < input$cqThr[1])) {
                              "Uncertain"
                            } else {
                              "Ok"
@@ -232,11 +232,11 @@ shinyServer(function(input, output, session) {
                      dTbl <- dTbl %>%
                        group_by(kit, marker, sample) %>% 
                        mutate(
-                         allelesDeltaCqUnnorm = meanCq - min(meanCq),
-                         allelesDeltaCq =  allelesDeltaCqUnnorm - 
+                         allelesDeltaCqUnnorm = meanCq - min(meanCq[ampStatus_QC != "Fail"]),
+                         allelesDeltaCq = allelesDeltaCqUnnorm - 
                            (ctrlMarkerCq - min(ctrlMarkerCq)),
                          allelesDeltaCq_QC = 
-                           ifelse(abs(allelesDeltaCq) < input$cqDelta,
+                           ifelse(ampStatus_QC == "Fail" | abs(allelesDeltaCq) < input$cqDelta,
                                   "Ok", "Fail"))
                      
                      # Kit NTC noAmp -----------------------------------------------------------
@@ -574,7 +574,7 @@ shinyServer(function(input, output, session) {
                  marker %in% input$showMarkers &
                  sample %in% input$showSamples) %>% 
         ungroup() %>% 
-        dplyr::select(fdata.name, position, marker, kit, sample, sample.type,
+        dplyr::select(fdata.name, position, marker, allele, kit, sample, sample.type,
                       Cq = cq_f, Mean_Cq = meanCq_f, D_Cq = deltaCq_f,
                       AllelesD_Cq = allelesDeltaCq_f,
                       result, Zygosity = resultZygosity,

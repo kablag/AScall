@@ -69,8 +69,9 @@ ui <- fluidPage(
         tags$div(title = "Maximum cycle difference for homozygosity",
                  numericInput("cqDelta", "Cq ∆", 2)
         ),
-        tags$div(title = "Mark curves as negative with Cq higher threshold",
-                 numericInput("cqThr", "Cq Threshold", 30)
+        tags$div(title = "Mark curves as negative with Cq outside region",
+                 sliderInput("cqThr", "Cq Range", 1, 50,
+                             c(15, 30), step = 1)
         ),
         tags$div(title = "Mark curves as negative with RFU lower threshold",
                  numericInput("rfuThr", "RFU Threshold", 300)
