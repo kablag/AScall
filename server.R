@@ -765,6 +765,23 @@ shinyServer(function(input, output, session) {
         startCol = 1,
       )
       
+      addWorksheet(
+        wb = my_workbook,
+        sheetName = "Settings"
+      )
+      settingsv <- lapply(calcResults()$calcParams, function(p) paste(p, collapse = "; "))
+      settingsTbl <- data.frame(
+        Param = names(settingsv),
+        Value = unlist(settingsv))
+      writeData(
+        my_workbook,
+        sheet = "Settings",
+        settingsTbl,
+        startRow = 1,
+        startCol = 1
+      )
+      
+      
       saveWorkbook(my_workbook, file)
       unlink(tfile)
       # 
