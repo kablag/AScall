@@ -309,6 +309,7 @@ button. *Xlsx* report consists of (fig.6):
 * Genotyping results table
 * Genotypes count plot
 * QC table
+* Analysis settings
 
 Report generation is carried out by *openxlsx* package.
 
