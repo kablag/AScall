@@ -12,6 +12,13 @@ library(qpcR)
 
 source("generics.R")
 
+# Check if supposed to calculete pcrfit_single on remote server.
+# Add initRemote() function to your .Rprofile to activate
+# (see init_remote.R for details).
+if (exists("initRemote")) {
+  source("init_remote.R", local = TRUE)
+}
+
 nCores <- detectCores()
 cl <- makeForkCluster(nCores)
 clusterExport(cl, c("pcrfit", "efficiency", "l4", "l5", "l6", "l7", "b4", "b5", "b6", "b7"))

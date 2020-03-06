@@ -4,7 +4,7 @@
 
 AScall is a web tool providing automatic processing of allele specific real-time
 PCR experiments: variation conducted real-time whereis each allele is detected 
-by independent reaction separated into individual tubes. The positive outcome of
+by independent reaction separated into individual wells. The positive outcome of
 the reaction for a particular allele is judged by the increase in the 
 fluorescent signal. This tool is written in R language with graphical user 
 interface based on *shiny* technology. In addition to general purpose R 
@@ -62,7 +62,7 @@ Correct plate setup is shown on the fig.1:
 
 There are several major elements:
 
-* All tubes with one sample have to be **named equaly**. Marked with the red box **p181**
+* All wells with one sample have to be **named equaly**. Marked with the red box **p181**
 on the fig.1: despites the different names of targets - sample names are equal. 
 Same rule for replicates - there should not be any indices!
 * Target names for not control genes have to contain **gene name** and **allele name** 
@@ -74,7 +74,7 @@ is insertion.
 * Control gene name have to be equal for all plates. Blue box **B2m**.
 * No template controls must have **NTC** sample type.
 * Target name without allele name called **marker**.
-* All tubes with the same markers *AScall* interpretes as one **kit**. Orange box
+* All wells with the same markers *AScall* interpretes as one **kit**. Orange box
 on the fig.1.
 
 
