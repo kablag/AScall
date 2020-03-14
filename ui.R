@@ -84,7 +84,7 @@ ui <- fluidPage(
         )
       ),
       conditionalPanel(
-        condition = "output.enableReportBtn",
+        condition = "output.resultsReady",
         tags$div(title = "Press button to generate report",
                  downloadButton("genReport", "Report")
         )
@@ -108,6 +108,9 @@ ui <- fluidPage(
                     options = list("actions-box" = TRUE))
       ),
       tabsetPanel(
+        id = "tabSet",
+        tabPanel("User Manual",
+                 includeMarkdown("README.md")),
         tabPanel("Summary",
                  # plotlyOutput("allelicDescrPlot"),
                  plotOutput("genotypesFreqPlot"),
@@ -117,9 +120,7 @@ ui <- fluidPage(
                  fluidRow(
                    column(6, uiOutput("ampCurvesUI")),
                    column(6, uiOutput("pcrPlateUI"))),
-                 DT::dataTableOutput("detailsTbl")),
-        tabPanel("User Manual",
-                 includeMarkdown("README.md"))
+                 DT::dataTableOutput("detailsTbl"))
       )
     )
   )

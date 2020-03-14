@@ -12,7 +12,7 @@ library(qpcR)
 
 source("generics.R")
 
-# Check if supposed to calculete pcrfit_single on remote server.
+# Check if supposed to calculate pcrfit_single on remote server.
 # Add initRemote() function to your .Rprofile to activate
 # (see init_remote.R for details).
 if (exists("initRemote")) {
@@ -404,11 +404,14 @@ shinyServer(function(input, output, session) {
                }
   )
   
-  output$enableReportBtn <- reactive({
+  output$resultsReady <- reactive({
     req(calcResults())
+    updateTabsetPanel(session,
+                      "tabSet",
+                      selected = "Summary")
     TRUE
   })
-  outputOptions(output, "enableReportBtn", suspendWhenHidden = FALSE)
+  outputOptions(output, "resultsReady", suspendWhenHidden = FALSE)
   
   observeEvent(preCalcTbl(),
                {
