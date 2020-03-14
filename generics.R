@@ -91,7 +91,9 @@ dataType$set("public", "InitEndPt",
 
 runType$set("public", "Preprocess",
             function(bgRange, modelType, cqMethod, thrCq) {
-              self$react <- foreach(reactN = self$react) %dopar% {
+              self$react <- foreach(reactN = self$react
+                                    # , .verbose = TRUE
+                                    ) %dopar% {
                 for (dat in reactN$data)
                   dat$Preprocess(bgRange, modelType, cqMethod, thrCq)
                 reactN

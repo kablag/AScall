@@ -116,8 +116,8 @@ shinyServer(function(input, output, session) {
   observeEvent(input$recalculate,
                {
                  req(rdmls())
-                 toLog(str_pad("Preprocessing curves",
-                               40, "both", pad = c("-")))
+                 # toLog(str_pad("Preprocessing curves",
+                 #               40, "both", pad = c("-")))
                  # withProgress(message = 'Init Curves', value = 0, {
                  #   for (fname in names(rdmls())) {
                  #     toLog(paste("File", fname))
